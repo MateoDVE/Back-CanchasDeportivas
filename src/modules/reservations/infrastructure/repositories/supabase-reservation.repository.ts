@@ -12,6 +12,14 @@ export class SupabaseReservationRepository implements IReservationRepository {
   ) {}
 
   private toDomain(row: any): Reservation {
+    const isFinalPaid =
+      Boolean(row.is_final_payment_paid) ||
+      (Array.isArray(row.payments) &&
+        row.payments.some(
+          (p: any) => p.payment_type === 'SALDO_FINAL' && p.status === 'VALIDATED',
+        ));
+    const isAuthorized = Boolean(row.is_entry_authorized) || row.status === 'COMPLETED';
+
     return new Reservation(
       row.id,
       row.client_id,
@@ -28,8 +36,8 @@ export class SupabaseReservationRepository implements IReservationRepository {
       row.parent_reservation_id,
       row.cancellation_reason,
       new Date(row.created_at),
-      row.is_entry_authorized ?? false,
-      row.is_final_payment_paid ?? false,
+      isAuthorized,
+      isFinalPaid,
       row.origin || 'WEB',
     );
   }
@@ -37,7 +45,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
   async findById(id: string): Promise<Reservation | null> {
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .eq('id', id)
       .maybeSingle();
 
@@ -107,7 +115,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
   async findByCourtAndDate(courtId: number, date: string): Promise<Reservation[]> {
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .eq('court_id', courtId)
       .eq('reservation_date', date);
 
@@ -118,7 +126,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
   async findByClient(clientId: string): Promise<Reservation[]> {
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .eq('client_id', clientId)
       .order('created_at', { ascending: false });
 
@@ -129,7 +137,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
   async findPendingValidation(): Promise<Reservation[]> {
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .eq('status', 'PENDING_VALIDATION')
       .order('created_at', { ascending: true });
 
@@ -141,7 +149,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .eq('status', 'TEMPORAL')
       .gt('expires_at', now)
       .order('created_at', { ascending: false });
@@ -153,7 +161,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
   async findAll(): Promise<Reservation[]> {
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
@@ -163,7 +171,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
   async findByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
     const { data, error } = await this.supabase
       .from('reservations')
-      .select('*')
+      .select('*, payments(*)')
       .gte('reservation_date', startDate)
       .lte('reservation_date', endDate);
 
@@ -178,7 +186,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
     status?: string;
     clientId?: string;
   }): Promise<Reservation[]> {
-    let query = this.supabase.from('reservations').select('*');
+    let query = this.supabase.from('reservations').select('*, payments(*)');
     if (filters.date) query = query.eq('reservation_date', filters.date);
     if (filters.courtId) query = query.eq('court_id', filters.courtId);
     if (filters.status) query = query.eq('status', filters.status);

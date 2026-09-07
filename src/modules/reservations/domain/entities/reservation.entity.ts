@@ -127,7 +127,12 @@ export class Reservation {
   }
 
   get pendingBalance(): number {
-    if (this.isFinalPaymentPaid) {
+    if (
+      this.isFinalPaymentPaid ||
+      this._status === 'CANCELLED' ||
+      this._status === 'EXPIRED' ||
+      this._status === 'TEMPORAL'
+    ) {
       return 0;
     }
     return Number((this.totalPrice - this.advanceRequired).toFixed(2));
@@ -194,6 +199,11 @@ export class Reservation {
   }
 
   public authorizeEntry(): void {
+    if (this._status === 'COMPLETED' || this.isEntryAuthorized) {
+      this.isEntryAuthorized = true;
+      this._status = 'COMPLETED';
+      return;
+    }
     if (this._status !== 'CONFIRMED') {
       throw new DomainException(
         `No se puede autorizar el ingreso de una reserva con estado ${this._status}.`,
@@ -205,6 +215,7 @@ export class Reservation {
       );
     }
     this.isEntryAuthorized = true;
+    this._status = 'COMPLETED';
   }
 
   public markNoShow(): void {

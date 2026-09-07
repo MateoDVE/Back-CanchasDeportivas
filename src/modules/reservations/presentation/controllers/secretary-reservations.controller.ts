@@ -12,7 +12,7 @@ import {
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../../../../common/decorators/current-user.decorator';
 
 import { GetDailyOperationalBoardUseCase } from '../../application/use-cases/get-daily-operational-board.use-case';
 import { SearchReservationsUseCase } from '../../application/use-cases/search-reservations.use-case';
@@ -119,7 +119,7 @@ export class SecretaryReservationsController {
   @HttpCode(HttpStatus.CREATED)
   async createManual(
     @Body() dto: ManualReservationDto,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.createManualReservationUseCase.execute({
       clientId: dto.clientId,
@@ -128,7 +128,7 @@ export class SecretaryReservationsController {
       startTime: dto.startTime,
       endTime: dto.endTime,
       origin: dto.origin,
-      secretaryId: user.userId,
+      secretaryId: user.id || (user as any).userId,
     });
   }
 
@@ -158,12 +158,12 @@ export class SecretaryReservationsController {
   async markNoShow(
     @Param('id') id: string,
     @Body('reason') reason: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.markNoShowAndReleaseUseCase.execute({
       reservationId: id,
       reason,
-      secretaryId: user.userId,
+      secretaryId: user.id || (user as any).userId,
     });
   }
 
@@ -175,11 +175,11 @@ export class SecretaryReservationsController {
   async cancelReservation(
     @Param('id') id: string,
     @Body('reason') reason: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.cancelReservationUseCase.execute({
       reservationId: id,
-      cancelledByUserId: user.userId,
+      cancelledByUserId: user.id || (user as any).userId,
       isStaff: true,
       reason: reason || 'Cancelado por secretaria',
     });
@@ -193,7 +193,7 @@ export class SecretaryReservationsController {
   async reschedule(
     @Param('id') id: string,
     @Body() dto: RescheduleReservationDto,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.rescheduleReservationUseCase.execute({
       reservationId: id,
@@ -202,7 +202,7 @@ export class SecretaryReservationsController {
       newEndTime: dto.newEndTime,
       newCourtId: dto.newCourtId,
       reason: dto.reason,
-      handledBy: user.userId,
+      handledBy: user.id || (user as any).userId,
     });
   }
 }

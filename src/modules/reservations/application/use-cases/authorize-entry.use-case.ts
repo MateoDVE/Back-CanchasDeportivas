@@ -4,6 +4,10 @@ import {
   RESERVATION_REPOSITORY,
 } from '../../domain/repositories/reservation.repository.interface';
 import {
+  IPaymentRepository,
+  PAYMENT_REPOSITORY,
+} from '../../../payments/domain/repositories/payment.repository.interface';
+import {
   EntityNotFoundException,
   DomainException,
 } from '../../../../common/domain/exceptions/domain.exception';
@@ -18,12 +22,22 @@ export class AuthorizeEntryUseCase {
   constructor(
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
+    @Inject(PAYMENT_REPOSITORY)
+    private readonly paymentRepository: IPaymentRepository,
   ) {}
 
   async execute(reservationId: string): Promise<Reservation> {
     const reservation = await this.reservationRepository.findById(reservationId);
     if (!reservation) {
       throw new EntityNotFoundException(`Reserva con id ${reservationId} no encontrada.`);
+    }
+
+    const payments = await this.paymentRepository.findByReservationId(reservationId);
+    const hasValidatedFinal = payments.some(
+      (p) => p.paymentType === 'SALDO_FINAL' && p.status === 'VALIDATED',
+    );
+    if (hasValidatedFinal) {
+      reservation.markFinalPaymentPaid();
     }
 
     reservation.authorizeEntry();
