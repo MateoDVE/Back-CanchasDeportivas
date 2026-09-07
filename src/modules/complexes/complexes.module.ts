@@ -7,6 +7,10 @@ import { SUPABASE_CLIENT } from '../../common/supabase/supabase.provider';
 import { CreateComplexUseCase } from './application/use-cases/create-complex.use-case';
 import { GetActiveComplexesUseCase } from './application/use-cases/get-active-complexes.use-case';
 import { GetComplexQrUseCase } from './application/use-cases/get-complex-qr.use-case';
+import { UpdateComplexUseCase } from './application/use-cases/update-complex.use-case';
+import { ToggleComplexStatusUseCase } from './application/use-cases/toggle-complex-status.use-case';
+import { UpdateBusinessInfoUseCase } from './application/use-cases/update-business-info.use-case';
+import { UploadComplexQrUseCase } from './application/use-cases/upload-complex-qr.use-case';
 import { AdminComplexesController } from './presentation/controllers/admin-complexes.controller';
 import { ComplexesController } from './presentation/controllers/complexes.controller';
 
@@ -30,7 +34,20 @@ import { ComplexesController } from './presentation/controllers/complexes.contro
     CreateComplexUseCase,
     GetActiveComplexesUseCase,
     GetComplexQrUseCase,
+    UpdateComplexUseCase,
+    ToggleComplexStatusUseCase,
+    UpdateBusinessInfoUseCase,
+    UploadComplexQrUseCase,
   ],
-  exports: [COMPLEX_REPOSITORY, CreateComplexUseCase, GetActiveComplexesUseCase, GetComplexQrUseCase],
+  exports: [
+    COMPLEX_REPOSITORY,
+    CreateComplexUseCase,
+    GetActiveComplexesUseCase,
+    GetComplexQrUseCase,
+    UpdateComplexUseCase,
+    ToggleComplexStatusUseCase,
+    UpdateBusinessInfoUseCase,
+    UploadComplexQrUseCase,
+  ],
 })
 export class ComplexesModule {}
