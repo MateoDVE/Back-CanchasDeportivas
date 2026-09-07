@@ -44,4 +44,24 @@ export class InMemoryPaymentRepository implements IPaymentRepository {
       .filter((p) => p.status === 'PENDING')
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
+
+  async findAll(): Promise<Payment[]> {
+    return Array.from(this.payments.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+  }
+
+  async findByHandlerAndDate(handledBy: string, date: string): Promise<Payment[]> {
+    return Array.from(this.payments.values()).filter((p) => {
+      const pDate = p.createdAt.toISOString().split('T')[0];
+      return p.handledBy === handledBy && pDate === date;
+    });
+  }
+
+  async findByDateRange(startDate: string, endDate: string): Promise<Payment[]> {
+    return Array.from(this.payments.values()).filter((p) => {
+      const pDate = p.createdAt.toISOString().split('T')[0];
+      return pDate >= startDate && pDate <= endDate;
+    });
+  }
 }

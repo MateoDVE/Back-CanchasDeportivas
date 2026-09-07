@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   Param,
@@ -14,9 +15,14 @@ import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../../../common/decorators/current-user.decorator';
 
+import { GetPaymentStatusUseCase } from '../../application/use-cases/get-payment-status.use-case';
+
 @Controller('api/v1/payments')
 export class PaymentsController {
-  constructor(private readonly uploadReceiptUseCase: UploadReceiptUseCase) {}
+  constructor(
+    private readonly uploadReceiptUseCase: UploadReceiptUseCase,
+    private readonly getPaymentStatusUseCase: GetPaymentStatusUseCase,
+  ) {}
 
   /**
    * @reference HU-CLI-16 Adjuntar comprobante
@@ -35,5 +41,16 @@ export class PaymentsController {
       clientId: user.id,
       receiptImageUrl: dto.receiptImageUrl,
     });
+  }
+
+  /**
+   * @reference HU-CLI-17 Consultar estado del pago
+   */
+  @Get(':reservationId/status')
+  @UseGuards(JwtAuthGuard)
+  async getPaymentStatus(
+    @Param('reservationId') reservationId: string,
+  ) {
+    return this.getPaymentStatusUseCase.execute(reservationId);
   }
 }

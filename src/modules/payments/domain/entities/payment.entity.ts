@@ -1,8 +1,8 @@
 import { DomainException, ValidationException } from '../../../../common/domain/exceptions/domain.exception';
 
-export type PaymentType = 'ANTICIPO' | 'SALDO_FINAL';
+export type PaymentType = 'ANTICIPO' | 'SALDO_FINAL' | 'DEVOLUCION';
 export type PaymentMethod = 'QR' | 'EFECTIVO';
-export type PaymentStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+export type PaymentStatus = 'PENDING' | 'VALIDATED' | 'REJECTED' | 'REFUNDED';
 
 export class Payment {
   constructor(

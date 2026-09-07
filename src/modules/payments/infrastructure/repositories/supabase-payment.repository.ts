@@ -96,4 +96,43 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     if (error || !data) return [];
     return data.map((r) => this.toDomain(r));
   }
+
+  async findAll(): Promise<Payment[]> {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
+
+  async findByHandlerAndDate(handledBy: string, date: string): Promise<Payment[]> {
+    const startIso = `${date}T00:00:00.000Z`;
+    const endIso = `${date}T23:59:59.999Z`;
+
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*')
+      .eq('handled_by', handledBy)
+      .gte('created_at', startIso)
+      .lte('created_at', endIso);
+
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
+
+  async findByDateRange(startDate: string, endDate: string): Promise<Payment[]> {
+    const startIso = `${startDate}T00:00:00.000Z`;
+    const endIso = `${endDate}T23:59:59.999Z`;
+
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*')
+      .gte('created_at', startIso)
+      .lte('created_at', endIso);
+
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
 }
