@@ -28,6 +28,9 @@ export class Reservation {
     public readonly parentReservationId?: string | null,
     public cancellationReason?: string | null,
     public readonly createdAt: Date = new Date(),
+    public isEntryAuthorized: boolean = false,
+    public isFinalPaymentPaid: boolean = false,
+    public readonly origin: string = 'WEB',
   ) {}
 
   public static createTemporal(props: {
@@ -66,6 +69,52 @@ export class Reservation {
       null,
       null,
       new Date(),
+      false,
+      false,
+      'WEB',
+    );
+  }
+
+  public static createManual(props: {
+    id: string;
+    clientId: string;
+    courtId: number;
+    reservationDate: string;
+    timeSlot: TimeSlot;
+    pricePerHour: number;
+    createdBy: string;
+    origin?: 'MANUAL' | 'WHATSAPP';
+    status?: 'CONFIRMED' | 'PENDING_VALIDATION';
+  }): Reservation {
+    if (props.pricePerHour <= 0) {
+      throw new ValidationException('El precio de la cancha debe ser mayor a 0.');
+    }
+
+    const totalPrice = Number(
+      (props.timeSlot.durationHours * props.pricePerHour).toFixed(2),
+    );
+    const advanceRequired = Number((totalPrice * 0.25).toFixed(2));
+    const initialStatus = props.status || 'CONFIRMED';
+
+    return new Reservation(
+      props.id,
+      props.clientId,
+      props.courtId,
+      props.reservationDate,
+      props.timeSlot.startTime,
+      props.timeSlot.endTime,
+      props.pricePerHour,
+      totalPrice,
+      advanceRequired,
+      initialStatus,
+      null,
+      props.createdBy,
+      null,
+      null,
+      new Date(),
+      false,
+      false,
+      props.origin || 'MANUAL',
     );
   }
 
@@ -78,6 +127,9 @@ export class Reservation {
   }
 
   get pendingBalance(): number {
+    if (this.isFinalPaymentPaid) {
+      return 0;
+    }
     return Number((this.totalPrice - this.advanceRequired).toFixed(2));
   }
 
@@ -132,5 +184,36 @@ export class Reservation {
     if (this._status === 'TEMPORAL') {
       this._status = 'EXPIRED';
     }
+  }
+
+  public markFinalPaymentPaid(): void {
+    this.isFinalPaymentPaid = true;
+  }
+
+  public authorizeEntry(): void {
+    if (this._status !== 'CONFIRMED') {
+      throw new DomainException(
+        `No se puede autorizar el ingreso de una reserva con estado ${this._status}.`,
+      );
+    }
+    if (this.pendingBalance > 0) {
+      throw new DomainException(
+        `No se puede autorizar el ingreso si existe saldo pendiente (${this.pendingBalance} Bs). Debe registrar el pago final primero.`,
+      );
+    }
+    this.isEntryAuthorized = true;
+  }
+
+  public markNoShow(): void {
+    if (this._status !== 'CONFIRMED') {
+      throw new DomainException(
+        `Solo se puede declarar inasistencia para reservas CONFIRMADAS. Estado actual: ${this._status}`,
+      );
+    }
+    this._status = 'NO_SHOW';
+  }
+
+  public markReprogrammed(): void {
+    this._status = 'REPROGRAMMED';
   }
 }

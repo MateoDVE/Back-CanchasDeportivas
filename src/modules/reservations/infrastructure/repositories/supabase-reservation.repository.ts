@@ -28,6 +28,9 @@ export class SupabaseReservationRepository implements IReservationRepository {
       row.parent_reservation_id,
       row.cancellation_reason,
       new Date(row.created_at),
+      row.is_entry_authorized ?? false,
+      row.is_final_payment_paid ?? false,
+      row.origin || 'WEB',
     );
   }
 
@@ -58,6 +61,9 @@ export class SupabaseReservationRepository implements IReservationRepository {
       created_by: reservation.createdBy,
       parent_reservation_id: reservation.parentReservationId || null,
       cancellation_reason: reservation.cancellationReason || null,
+      is_entry_authorized: reservation.isEntryAuthorized,
+      is_final_payment_paid: reservation.isFinalPaymentPaid,
+      origin: reservation.origin,
       created_at: reservation.createdAt.toISOString(),
     });
 
@@ -129,6 +135,58 @@ export class SupabaseReservationRepository implements IReservationRepository {
       .eq('status', 'PENDING_VALIDATION')
       .order('created_at', { ascending: true });
 
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
+
+  async findActiveTemporal(): Promise<Reservation[]> {
+    const now = new Date().toISOString();
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .eq('status', 'TEMPORAL')
+      .gt('expires_at', now)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
+
+  async findAll(): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
+
+  async findByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
+    const { data, error } = await this.supabase
+      .from('reservations')
+      .select('*')
+      .gte('reservation_date', startDate)
+      .lte('reservation_date', endDate);
+
+    if (error || !data) return [];
+    return data.map((r) => this.toDomain(r));
+  }
+
+  async search(filters: {
+    date?: string;
+    courtId?: number;
+    complexId?: number;
+    status?: string;
+    clientId?: string;
+  }): Promise<Reservation[]> {
+    let query = this.supabase.from('reservations').select('*');
+    if (filters.date) query = query.eq('reservation_date', filters.date);
+    if (filters.courtId) query = query.eq('court_id', filters.courtId);
+    if (filters.status) query = query.eq('status', filters.status);
+    if (filters.clientId) query = query.eq('client_id', filters.clientId);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error || !data) return [];
     return data.map((r) => this.toDomain(r));
   }

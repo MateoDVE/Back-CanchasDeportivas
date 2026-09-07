@@ -22,6 +22,13 @@ import { Roles } from '../../../../common/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../../../common/decorators/current-user.decorator';
 import { Public } from '../../../../common/decorators/public.decorator';
 
+import { GetCourtCalendarMonthUseCase } from '../../application/use-cases/get-court-calendar-month.use-case';
+import { GetReservationDetailUseCase } from '../../application/use-cases/get-reservation-detail.use-case';
+import { CancelReservationUseCase } from '../../application/use-cases/cancel-reservation.use-case';
+import { GetCancellationPolicyUseCase } from '../../application/use-cases/get-cancellation-policy.use-case';
+import { GetRescheduleInfoUseCase } from '../../application/use-cases/get-reschedule-info.use-case';
+import { GetReservationBalanceUseCase } from '../../application/use-cases/get-reservation-balance.use-case';
+
 @Controller('api/v1')
 export class ReservationsController {
   constructor(
@@ -30,6 +37,12 @@ export class ReservationsController {
     private readonly getReservationSummaryUseCase: GetReservationSummaryUseCase,
     private readonly getReservationStatusUseCase: GetReservationStatusUseCase,
     private readonly getClientReservationsUseCase: GetClientReservationsUseCase,
+    private readonly getCourtCalendarMonthUseCase: GetCourtCalendarMonthUseCase,
+    private readonly getReservationDetailUseCase: GetReservationDetailUseCase,
+    private readonly cancelReservationUseCase: CancelReservationUseCase,
+    private readonly getCancellationPolicyUseCase: GetCancellationPolicyUseCase,
+    private readonly getRescheduleInfoUseCase: GetRescheduleInfoUseCase,
+    private readonly getReservationBalanceUseCase: GetReservationBalanceUseCase,
   ) {}
 
   /**
@@ -42,6 +55,21 @@ export class ReservationsController {
     @Query('date') date: string,
   ): Promise<CourtAvailabilityOutputDto> {
     return this.getCourtAvailabilityUseCase.execute(courtId, date);
+  }
+
+  /**
+   * @reference HU-CLI-09 Consultar calendario mensual de la cancha
+   */
+  @Public()
+  @Get('courts/:courtId/calendar-month')
+  async getCalendarMonth(
+    @Param('courtId', ParseIntPipe) courtId: number,
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    const y = year ? parseInt(year, 10) : new Date().getFullYear();
+    const m = month ? parseInt(month, 10) : new Date().getMonth() + 1;
+    return this.getCourtCalendarMonthUseCase.execute(courtId, y, m);
   }
 
   /**
@@ -87,6 +115,61 @@ export class ReservationsController {
     @Param('id') id: string,
   ): Promise<ReservationStatusOutputDto> {
     return this.getReservationStatusUseCase.execute(id);
+  }
+
+  /**
+   * @reference HU-CLI-20 Consultar detalle de reserva
+   */
+  @Get('reservations/:id')
+  @UseGuards(JwtAuthGuard)
+  async getDetail(@Param('id') id: string) {
+    return this.getReservationDetailUseCase.execute(id);
+  }
+
+  /**
+   * @reference HU-CLI-24 Consultar saldo pendiente
+   */
+  @Get('reservations/:id/balance')
+  @UseGuards(JwtAuthGuard)
+  async getBalance(@Param('id') id: string) {
+    return this.getReservationBalanceUseCase.execute(id);
+  }
+
+  /**
+   * @reference HU-CLI-23 Consultar información de reprogramación
+   */
+  @Get('reservations/:id/reschedule-info')
+  @UseGuards(JwtAuthGuard)
+  async getRescheduleInfo(@Param('id') id: string) {
+    return this.getRescheduleInfoUseCase.execute(id);
+  }
+
+  /**
+   * @reference HU-CLI-21 Solicitar cancelación de reserva
+   */
+  @Post('reservations/:id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async cancel(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('reason') reason?: string,
+  ) {
+    return this.cancelReservationUseCase.execute({
+      reservationId: id,
+      cancelledByUserId: user.id,
+      isStaff: false,
+      reason,
+    });
+  }
+
+  /**
+   * @reference HU-CLI-22 Consultar política de cancelación
+   */
+  @Public()
+  @Get('policies/cancellation')
+  getCancellationPolicy() {
+    return this.getCancellationPolicyUseCase.execute();
   }
 
   /**

@@ -92,6 +92,46 @@ export class InMemoryReservationRepository implements IReservationRepository {
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
+  async findActiveTemporal(): Promise<Reservation[]> {
+    const list = Array.from(this.reservations.values());
+    return list.filter((r) => r.status === 'TEMPORAL' && !r.isExpired());
+  }
+
+  async findAll(): Promise<Reservation[]> {
+    return Array.from(this.reservations.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+  }
+
+  async findByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
+    return Array.from(this.reservations.values()).filter(
+      (r) => r.reservationDate >= startDate && r.reservationDate <= endDate,
+    );
+  }
+
+  async search(filters: {
+    date?: string;
+    courtId?: number;
+    complexId?: number;
+    status?: string;
+    clientId?: string;
+  }): Promise<Reservation[]> {
+    let list = Array.from(this.reservations.values());
+    if (filters.date) {
+      list = list.filter((r) => r.reservationDate === filters.date);
+    }
+    if (filters.courtId) {
+      list = list.filter((r) => r.courtId === filters.courtId);
+    }
+    if (filters.status) {
+      list = list.filter((r) => r.status === filters.status);
+    }
+    if (filters.clientId) {
+      list = list.filter((r) => r.clientId === filters.clientId);
+    }
+    return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
   async releaseExpiredReservations(): Promise<number> {
     let released = 0;
     for (const r of this.reservations.values()) {
