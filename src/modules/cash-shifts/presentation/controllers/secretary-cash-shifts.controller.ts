@@ -34,7 +34,7 @@ export class SecretaryCashShiftsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query('date') date?: string,
   ) {
-    return this.getCurrentShiftSummaryUseCase.execute(user.id, date);
+    return this.getCurrentShiftSummaryUseCase.execute(user.id, date, user.role);
   }
 
   /**

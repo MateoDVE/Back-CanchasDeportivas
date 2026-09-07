@@ -49,10 +49,16 @@ export class CloseCashShiftUseCase {
     }
 
     // Calcular cobros reales registrados en el sistema para esta secretaria hoy
-    const payments = await this.paymentRepository.findByHandlerAndDate(
+    let payments = await this.paymentRepository.findByHandlerAndDate(
       input.secretaryId,
       shiftDate,
     );
+    if (payments.length === 0) {
+      const allDatePayments = await this.paymentRepository.findByDateRange(shiftDate, shiftDate);
+      if (allDatePayments.length > 0) {
+        payments = allDatePayments;
+      }
+    }
     const validatedPayments = payments.filter((p) => p.status === 'VALIDATED');
 
     const totalSystemCash = Number(

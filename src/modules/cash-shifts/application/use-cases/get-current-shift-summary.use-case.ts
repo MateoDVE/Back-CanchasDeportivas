@@ -8,9 +8,24 @@ import {
   PAYMENT_REPOSITORY,
 } from '../../../payments/domain/repositories/payment.repository.interface';
 
+export interface ShiftPaymentItemDto {
+  id: number;
+  amount: number;
+  paymentType: string;
+  paymentMethod: string;
+  createdAt: string;
+  reservationId: string;
+}
+
 export interface CurrentShiftSummaryDto {
   secretaryId: string;
   shiftDate: string;
+  date: string;
+  totalCollected: number;
+  totalCash: number;
+  totalQr: number;
+  transactionsCount: number;
+  payments: ShiftPaymentItemDto[];
   totalSystemCash: number;
   totalSystemQr: number;
   totalSystem: number;
@@ -33,10 +48,21 @@ export class GetCurrentShiftSummaryUseCase {
     private readonly paymentRepository: IPaymentRepository,
   ) {}
 
-  async execute(secretaryId: string, date?: string): Promise<CurrentShiftSummaryDto> {
+  async execute(
+    secretaryId: string,
+    date?: string,
+    userRole?: string,
+  ): Promise<CurrentShiftSummaryDto> {
     const shiftDate = date || new Date().toISOString().split('T')[0];
 
-    const payments = await this.paymentRepository.findByHandlerAndDate(secretaryId, shiftDate);
+    let payments = await this.paymentRepository.findByHandlerAndDate(secretaryId, shiftDate);
+    if (userRole === 'ADMIN' || payments.length === 0) {
+      const allDatePayments = await this.paymentRepository.findByDateRange(shiftDate, shiftDate);
+      if (userRole === 'ADMIN' || allDatePayments.length > 0) {
+        payments = allDatePayments;
+      }
+    }
+
     const validatedPayments = payments.filter((p) => p.status === 'VALIDATED');
 
     const totalSystemCash = Number(
@@ -60,9 +86,24 @@ export class GetCurrentShiftSummaryUseCase {
       shiftDate,
     );
 
+    const paymentsList: ShiftPaymentItemDto[] = validatedPayments.map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      paymentType: p.paymentType,
+      paymentMethod: p.paymentMethod,
+      createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString(),
+      reservationId: p.reservationId,
+    }));
+
     return {
       secretaryId,
       shiftDate,
+      date: shiftDate,
+      totalCollected: totalSystem,
+      totalCash: totalSystemCash,
+      totalQr: totalSystemQr,
+      transactionsCount: validatedPayments.length,
+      payments: paymentsList,
       totalSystemCash,
       totalSystemQr,
       totalSystem,
