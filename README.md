@@ -1,98 +1,152 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🏟️ Sistema de Gestión y Reservas de Canchas Deportivas
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Bienvenido al repositorio central del **Sistema de Gestión y Reservas de Canchas Deportivas**. Esta solución integral está diseñada para digitalizar la administración operativa y financiera de complejos deportivos que disponen de canchas de Futsal, Wally, Racket y otras disciplinas.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🧭 Navegación Rápida de Documentación
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Si eres un **agente de Inteligencia Artificial** o un desarrollador integrándose al proyecto, consulta los documentos de referencia técnica según tu necesidad:
 
-## Project setup
+| Documento | Descripción | Audiencia / Uso |
+| :--- | :--- | :--- |
+| **[AI_CONTEXT.md](./AI_CONTEXT.md)** | **Contexto Maestro para Agentes IA**. Reglas de oro, directrices de arquitectura y restricciones inviolables. | 🤖 Agentes IA / Prompting |
+| **[01. Arquitectura y Principios SOLID](./docs/01-architecture-solid.md)** | Especificación detallada de las 4 capas (Dominio, Aplicación, Infraestructura, Presentación) y ejemplos SOLID. | 🏛️ Arquitectura de Software |
+| **[02. Base de Datos y Supabase](./docs/02-database-supabase.md)** | Script DDL oficial, diccionario de datos de las 8 tablas, triggers, RLS y configuración de Storage. | 🗄️ Backend / DB Admins |
+| **[03. Reglas de Negocio](./docs/03-business-rules.md)** | Invariantes de dominio: bloqueo de 5 min, anticipo del 25%, horarios de 1h exacta, inmutabilidad de precios. | 📋 Lógica de Negocio |
+| **[04. Matriz de Historias de Usuario](./docs/04-user-stories-matrix.md)** | Las 74 Historias de Usuario (Cliente: 25, Secretaria: 26, Admin: 25) con criterios de aceptación y trazabilidad. | 🎯 QA / Product / Devs |
+| **[05. Especificación Backend (NestJS)](./docs/05-backend-spec-nestjs.md)** | Estructura modular en NestJS 11, DTOs, casos de uso, interfaces, repositorios y autenticación JWT. | ⚙️ Backend Developers |
+| **[06. Especificación Frontend (Angular)](./docs/06-frontend-spec-angular.md)** | Arquitectura en Angular 20 Standalone, Signals, componentes por rol (Cliente, Secretaria, Admin). | 💻 Frontend Developers |
+| **[07. Guía Operativa para Agentes de IA](./docs/07-ai-agent-guide.md)** | Flujo de trabajo estándar paso a paso para implementar nuevas funcionalidades sin romper capas. | 🤖 Agentes IA / Contribución |
 
-```bash
-$ npm install
+---
+
+## 🏗️ Arquitectura General del Sistema
+
+El sistema implementa una **Arquitectura en Capas Limpia (Clean Layered Architecture)** siguiendo escrupulosamente los principios **SOLID**:
+
+```
+                              ┌──────────────────────────────────────────────┐
+                              │             Frontend (Angular 20)            │
+                              │   - Standalone Components & Signals          │
+                              │   - Portales: Cliente, Secretaria, Admin     │
+                              └──────────────────────┬───────────────────────┘
+                                                     │ HTTP REST / JSON
+                                                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                       Backend (NestJS 11)                                          │
+│                                                                                                    │
+│  [Capa de Presentación]   ──▶  Controladores HTTP, DTOs de Entrada/Salida, Guards de Roles         │
+│                                           │                                                        │
+│  [Capa de Aplicación]     ──▶  Casos de Uso (1 acción por clase), Orquestación de Servicios        │
+│                                           │                                                        │
+│  [Capa de Dominio]        ──▶  Entidades, Value Objects, Puertos de Repositorio (Interfaces)       │
+│                                           ▲                                                        │
+│  [Capa de Infraestructura]──▶  Adaptadores Supabase (Implementación de Repositorios), Storage      │
+└───────────────────────────────────────────┬────────────────────────────────────────────────────────┘
+                                            │ SQL / REST
+                                            ▼
+                              ┌──────────────────────────────────────────────┐
+                              │              Supabase Cloud                  │
+                              │   - PostgreSQL 15+ (8 Tablas Relacionales)   │
+                              │   - Storage Buckets (Comprobantes y QRs)     │
+                              │   - Autenticación y RLS Policies             │
+                              └──────────────────────────────────────────────┘
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## 📦 Estructura del Monorepo
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+Calidad/
+├── AI_CONTEXT.md                     # Contexto de alto nivel para asistentes IA
+├── README.md                         # Documento de bienvenida y mapa general
+├── docs/                             # Documentación técnica exhaustiva
+│   ├── 01-architecture-solid.md
+│   ├── 02-database-supabase.md
+│   ├── 03-business-rules.md
+│   ├── 04-user-stories-matrix.md
+│   ├── 05-backend-spec-nestjs.md
+│   ├── 06-frontend-spec-angular.md
+│   └── 07-ai-agent-guide.md
+├── back-canchas-deportivas/          # Proyecto Backend en NestJS 11
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       ├── common/                   # Filtros, decoradores, guards e interceptores compartidos
+│       └── modules/                  # Módulos por capas: auth, complexes, courts, reservations...
+└── FrontCanchasDeportivas/           # Proyecto Frontend en Angular 20
+    ├── package.json
+    ├── angular.json
+    └── src/
+        └── app/
+            ├── core/                 # Servicios globales, interceptores HTTP, guards de ruta
+            ├── shared/               # Componentes reusables (botones, modales, pipes)
+            └── features/             # Vistas agrupadas por rol (client, secretary, admin)
 ```
 
-## Run tests
+---
 
+## 👥 Perfiles de Usuario del Sistema
+
+1. **Cliente**:
+   - Registro con CI, teléfono y correo electrónico.
+   - Exploración de complejos y tipos de canchas (Futsal, Wally, Racket).
+   - Consulta de disponibilidad en calendario interactivo.
+   - Bloqueo temporal de horario por **5 minutos**.
+   - Pago del **25% de anticipo** escaneando el código QR del complejo y carga de comprobante de pago.
+   - Seguimiento del estado de validación y pago del **75% restante en ventanilla** al ingresar.
+
+2. **Secretaria / Cajera**:
+   - Panel operativo con reservas del día agrupadas por estado.
+   - Validación o rechazo con motivo de comprobantes de pago de anticipos.
+   - Registro de reservas manuales (solicitadas presencialmente o por WhatsApp).
+   - Control de solicitudes temporales y liberación de horarios expirados.
+   - Recepción del pago final (efectivo/QR) y habilitación de ingreso a cancha.
+   - Gestión de inasistencias (*no-shows*) y reprogramaciones por incidentes.
+   - Arqueo diario y cierre formal de turno de caja.
+
+3. **Administrador / Propietario**:
+   - Mantenimiento integral de complejos y canchas.
+   - Configuración de precios por hora (con preservación histórica inmutable en reservas existentes).
+   - Programación de mantenimientos e inhabilitación por incidentes.
+   - Definición de calendarios habituales y excepciones de fechas específicas.
+   - Supervisión financiera de ingresos y pagos pendientes.
+   - Análisis de negocio: identificación de **horas de mayor afluencia** y **canchas con menor ocupación** para toma de decisiones estratégicas.
+
+---
+
+## 🚀 Puesta en Marcha Local
+
+### Prerrequisitos
+- Node.js versión 20 o 22 LTS
+- Gestor de paquetes `npm`
+- Proyecto activo en [Supabase](https://supabase.com/)
+
+### 1. Configuración de Base de Datos
+1. Accede a tu consola de Supabase -> **SQL Editor**.
+2. Ejecuta el script DDL provisto en [`docs/02-database-supabase.md`](./docs/02-database-supabase.md).
+3. Configura los buckets de Storage `payment-receipts` y `complex-qrs` con permisos públicos de lectura y autenticados para escritura.
+
+### 2. Backend (NestJS)
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cd back-canchas-deportivas
+npm install
+# Crear archivo .env basado en las variables requeridas (ver docs/05-backend-spec-nestjs.md)
+npm run start:dev
 ```
+El servidor backend se levantará en `http://localhost:3000`.
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 3. Frontend (Angular 20)
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cd FrontCanchasDeportivas
+npm install
+npm start
 ```
+La aplicación cliente se levantará en `http://localhost:4200`.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 📜 Licencia y Contacto
+Proyecto académico y profesional de Ingeniería de Software y Aseguramiento de Calidad.
