@@ -6,6 +6,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthController } from './presentation/controllers/auth.controller';
 import { RegisterClientUseCase } from './application/use-cases/register-client.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
+import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { PASSWORD_HASHER } from './domain/services/password-hasher.interface';
 import { BcryptPasswordHasher } from './infrastructure/services/bcrypt-password-hasher.service';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
@@ -31,12 +32,13 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
   providers: [
     RegisterClientUseCase,
     LoginUseCase,
+    VerifyEmailUseCase,
     JwtStrategy,
     {
       provide: PASSWORD_HASHER,
       useClass: BcryptPasswordHasher,
     },
   ],
-  exports: [RegisterClientUseCase, LoginUseCase, JwtStrategy, PassportModule],
+  exports: [RegisterClientUseCase, LoginUseCase, VerifyEmailUseCase, JwtStrategy, PassportModule, PASSWORD_HASHER],
 })
 export class AuthModule {}
