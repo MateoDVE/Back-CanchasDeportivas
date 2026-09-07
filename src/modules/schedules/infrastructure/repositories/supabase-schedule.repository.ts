@@ -91,4 +91,34 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
 
     return data.map((r) => this.toDomain(r));
   }
+
+  async setSpecificDateSchedule(
+    courtId: number,
+    specificDate: string,
+    openTime: string,
+    closeTime: string,
+  ): Promise<CourtSchedule> {
+    await this.supabase
+      .from('court_schedules')
+      .delete()
+      .eq('court_id', courtId)
+      .eq('specific_date', specificDate);
+
+    const { data, error } = await this.supabase
+      .from('court_schedules')
+      .insert({
+        court_id: courtId,
+        specific_date: specificDate,
+        open_time: openTime,
+        close_time: closeTime,
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(`Error al registrar horario especial en Supabase: ${error?.message}`);
+    }
+
+    return this.toDomain(data);
+  }
 }

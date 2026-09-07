@@ -5,6 +5,7 @@ import { InMemoryScheduleRepository } from './infrastructure/repositories/in-mem
 import { SupabaseScheduleRepository } from './infrastructure/repositories/supabase-schedule.repository';
 import { SUPABASE_CLIENT } from '../../common/supabase/supabase.provider';
 import { SetWeeklyScheduleUseCase } from './application/use-cases/set-weekly-schedule.use-case';
+import { SetSpecificDateScheduleUseCase } from './application/use-cases/set-specific-date-schedule.use-case';
 import { GetCourtSchedulesUseCase } from './application/use-cases/get-court-schedules.use-case';
 import { AdminSchedulesController } from './presentation/controllers/admin-schedules.controller';
 import { CourtsModule } from '../courts/courts.module';
@@ -28,8 +29,14 @@ import { CourtsModule } from '../courts/courts.module';
       inject: [SUPABASE_CLIENT, InMemoryScheduleRepository],
     },
     SetWeeklyScheduleUseCase,
+    SetSpecificDateScheduleUseCase,
     GetCourtSchedulesUseCase,
   ],
-  exports: [SCHEDULE_REPOSITORY, SetWeeklyScheduleUseCase, GetCourtSchedulesUseCase],
+  exports: [
+    SCHEDULE_REPOSITORY,
+    SetWeeklyScheduleUseCase,
+    SetSpecificDateScheduleUseCase,
+    GetCourtSchedulesUseCase,
+  ],
 })
 export class SchedulesModule {}

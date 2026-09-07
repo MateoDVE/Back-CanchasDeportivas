@@ -77,4 +77,26 @@ export class InMemoryScheduleRepository implements IScheduleRepository {
 
     return created;
   }
+
+  async setSpecificDateSchedule(
+    courtId: number,
+    specificDate: string,
+    openTime: string,
+    closeTime: string,
+  ): Promise<CourtSchedule> {
+    this.schedules = this.schedules.filter(
+      (s) => !(s.courtId === courtId && s.specificDate === specificDate),
+    );
+
+    const schedule = new CourtSchedule(
+      this.nextId++,
+      courtId,
+      null,
+      specificDate,
+      openTime,
+      closeTime,
+    );
+    this.schedules.push(schedule);
+    return schedule;
+  }
 }

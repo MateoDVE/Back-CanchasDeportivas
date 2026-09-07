@@ -13,4 +13,10 @@ export interface IScheduleRepository {
   findByCourtAndDate(courtId: number, date: string): Promise<CourtSchedule | null>;
   getWeeklySchedules(courtId: number): Promise<CourtSchedule[]>;
   setWeeklySchedules(courtId: number, schedules: ScheduleConfigItem[]): Promise<CourtSchedule[]>;
+  setSpecificDateSchedule(
+    courtId: number,
+    specificDate: string,
+    openTime: string,
+    closeTime: string,
+  ): Promise<CourtSchedule>;
 }
