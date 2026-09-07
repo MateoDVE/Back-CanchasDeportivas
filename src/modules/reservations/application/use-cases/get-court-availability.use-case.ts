@@ -60,6 +60,9 @@ export class GetCourtAvailabilityUseCase {
     if (!schedule) {
       schedule = await this.scheduleRepository.findByCourtAndDay(courtId, dayOfWeek);
     }
+    if (!schedule && dayOfWeek === 7) {
+      schedule = await this.scheduleRepository.findByCourtAndDay(courtId, 0);
+    }
 
     if (!schedule) {
       return {

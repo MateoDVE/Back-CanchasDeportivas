@@ -6,7 +6,14 @@ import { EntityNotFoundException } from '../../../../common/domain/exceptions/do
 
 export interface ReservationSummaryOutputDto {
   id: string;
+  reservationId: string;
   clientId: string;
+  complexId: number;
+  complexName: string;
+  complexAddress: string;
+  complexQrUrl: string | null;
+  courtId: number;
+  courtName: string;
   complex: {
     id: number;
     name: string;
@@ -29,6 +36,7 @@ export interface ReservationSummaryOutputDto {
   status: string;
   expiresAt: Date | null;
   secondsRemaining: number;
+  isExpired: boolean;
 }
 
 /**
@@ -62,9 +70,18 @@ export class GetReservationSummaryUseCase {
       throw new EntityNotFoundException(`El complejo deportivo asociado no existe.`);
     }
 
+    const isExpired = reservation.isExpired();
+
     return {
       id: reservation.id,
+      reservationId: reservation.id,
       clientId: reservation.clientId,
+      complexId: complex.id,
+      complexName: complex.name,
+      complexAddress: complex.location,
+      complexQrUrl: complex.paymentQrUrl,
+      courtId: court.id,
+      courtName: court.name,
       complex: {
         id: complex.id,
         name: complex.name,
@@ -84,9 +101,10 @@ export class GetReservationSummaryUseCase {
       totalPrice: reservation.totalPrice,
       advanceRequired: reservation.advanceRequired,
       pendingBalance: reservation.pendingBalance,
-      status: reservation.status,
+      status: isExpired ? 'EXPIRED' : reservation.status,
       expiresAt: reservation.expiresAt,
       secondsRemaining: reservation.secondsRemaining(),
+      isExpired,
     };
   }
 }

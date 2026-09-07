@@ -72,6 +72,9 @@ export class CreateTemporalReservationUseCase {
     if (!schedule) {
       schedule = await this.scheduleRepository.findByCourtAndDay(input.courtId, dayOfWeek);
     }
+    if (!schedule && dayOfWeek === 7) {
+      schedule = await this.scheduleRepository.findByCourtAndDay(input.courtId, 0);
+    }
 
     if (!schedule) {
       throw new ValidationException(`La cancha no atiende el día seleccionado (${input.date}).`);

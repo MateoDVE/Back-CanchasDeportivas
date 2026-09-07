@@ -134,6 +134,9 @@ export class Reservation {
   }
 
   public isExpired(): boolean {
+    if (this._status === 'EXPIRED') {
+      return true;
+    }
     if (this._status !== 'TEMPORAL' || !this._expiresAt) {
       return false;
     }

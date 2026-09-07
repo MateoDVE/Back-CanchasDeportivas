@@ -7,10 +7,12 @@ import {
   ValidationException,
 } from '../../../../common/domain/exceptions/domain.exception';
 import { Payment } from '../../domain/entities/payment.entity';
+import { SupabaseStorageService } from '../../../../common/supabase/supabase-storage.service';
 
 export interface UploadReceiptInput {
   reservationId: string;
   clientId: string;
+  userRole?: string;
   receiptImageUrl: string;
 }
 
@@ -36,6 +38,7 @@ export class UploadReceiptUseCase {
     private readonly paymentRepository: IPaymentRepository,
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
+    private readonly storageService: SupabaseStorageService,
   ) {}
 
   async execute(input: UploadReceiptInput): Promise<UploadReceiptOutputDto> {
@@ -48,31 +51,53 @@ export class UploadReceiptUseCase {
       throw new EntityNotFoundException(`La reserva con ID ${input.reservationId} no existe.`);
     }
 
-    // Verificar que la reserva pertenezca al cliente
-    if (reservation.clientId !== input.clientId) {
+    // Verificar que la reserva pertenezca al cliente (o al personal administrativo)
+    const isStaff = input.userRole === 'ADMIN' || input.userRole === 'SECRETARIA';
+    if (!isStaff && reservation.clientId !== input.clientId) {
       throw new ForbiddenException('No tiene autorización para adjuntar comprobante a esta reserva.');
     }
 
     // La entidad valida que status sea TEMPORAL y que no haya expirado
-    reservation.markAsPendingValidation();
+    if (reservation.status === 'TEMPORAL') {
+      reservation.markAsPendingValidation();
+      await this.reservationRepository.update(reservation);
+    } else if (reservation.status !== 'PENDING_VALIDATION') {
+      throw new ValidationException(
+        `No se puede adjuntar comprobante a una reserva en estado ${reservation.status}.`,
+      );
+    }
 
-    // Crear el pago del anticipo (25%)
-    const payment = await this.paymentRepository.save({
-      reservationId: reservation.id,
-      amount: reservation.advanceRequired,
-      paymentType: 'ANTICIPO',
-      paymentMethod: 'QR',
-      receiptImageUrl: input.receiptImageUrl.trim(),
-      status: 'PENDING',
-      handledBy: null,
-      rejectionReason: null,
-      validate(secId: string) { this.validate(secId); },
-      reject(secId: string, reason: string) { this.reject(secId, reason); },
-      createdAt: new Date(),
-    });
+    // Subir imagen decodificada a Supabase Storage bucket 'payment-receipts'
+    const publicReceiptUrl = await this.storageService.uploadFile(
+      'payment-receipts',
+      input.reservationId,
+      input.receiptImageUrl.trim(),
+    );
 
-    // Guardar el cambio de estado de la reserva a PENDING_VALIDATION
-    await this.reservationRepository.update(reservation);
+    // Verificar si ya existe un pago pendiente para esta reserva
+    const existingPayments = await this.paymentRepository.findByReservationId(reservation.id);
+    const existingPending = existingPayments.find((p) => p.status === 'PENDING');
+
+    let payment: Payment;
+    if (existingPending) {
+      existingPending.receiptImageUrl = publicReceiptUrl;
+      await this.paymentRepository.update(existingPending);
+      payment = existingPending;
+    } else {
+      payment = await this.paymentRepository.save({
+        reservationId: reservation.id,
+        amount: reservation.advanceRequired,
+        paymentType: 'ANTICIPO',
+        paymentMethod: 'QR',
+        receiptImageUrl: publicReceiptUrl,
+        status: 'PENDING',
+        handledBy: null,
+        rejectionReason: null,
+        validate(secId: string) { this.validate(secId); },
+        reject(secId: string, reason: string) { this.reject(secId, reason); },
+        createdAt: new Date(),
+      });
+    }
 
     return {
       paymentId: payment.id,

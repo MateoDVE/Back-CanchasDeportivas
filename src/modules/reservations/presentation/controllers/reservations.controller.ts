@@ -79,7 +79,7 @@ export class ReservationsController {
    */
   @Post('reservations')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CLIENTE')
+  @Roles('CLIENTE', 'ADMIN', 'SECRETARIA')
   @HttpCode(HttpStatus.CREATED)
   async createTemporal(
     @CurrentUser() user: AuthenticatedUser,
@@ -177,7 +177,7 @@ export class ReservationsController {
    */
   @Get('client/my-reservations')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CLIENTE')
+  @Roles('CLIENTE', 'ADMIN')
   async getMyReservations(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ClientReservationsGroupedOutputDto> {

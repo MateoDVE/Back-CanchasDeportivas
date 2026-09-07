@@ -8,6 +8,10 @@ import { IComplexRepository, COMPLEX_REPOSITORY } from '../../../complexes/domai
 export interface PendingPaymentItemDto {
   paymentId: number;
   reservationId: string;
+  clientName: string;
+  clientCi: string;
+  courtName: string;
+  complexName: string;
   amount: number;
   paymentType: string;
   paymentMethod: string;
@@ -73,6 +77,10 @@ export class GetPendingPaymentsUseCase {
       result.push({
         paymentId: payment.id,
         reservationId: reservation.id,
+        clientName: client?.name || 'Cliente',
+        clientCi: client?.ci || '',
+        courtName: court?.name || 'Cancha Deportiva',
+        complexName: complex?.name || 'Complejo Deportivo',
         amount: payment.amount,
         paymentType: payment.paymentType,
         paymentMethod: payment.paymentMethod,

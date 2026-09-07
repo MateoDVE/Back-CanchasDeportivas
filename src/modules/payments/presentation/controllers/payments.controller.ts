@@ -29,7 +29,7 @@ export class PaymentsController {
    */
   @Post(':reservationId/receipt')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CLIENTE')
+  @Roles('CLIENTE', 'ADMIN', 'SECRETARIA')
   @HttpCode(HttpStatus.OK)
   async uploadReceipt(
     @CurrentUser() user: AuthenticatedUser,
@@ -39,6 +39,7 @@ export class PaymentsController {
     return this.uploadReceiptUseCase.execute({
       reservationId,
       clientId: user.id,
+      userRole: user.role,
       receiptImageUrl: dto.receiptImageUrl,
     });
   }

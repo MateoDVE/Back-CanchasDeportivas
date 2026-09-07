@@ -61,9 +61,6 @@ export class SupabaseReservationRepository implements IReservationRepository {
       created_by: reservation.createdBy,
       parent_reservation_id: reservation.parentReservationId || null,
       cancellation_reason: reservation.cancellationReason || null,
-      is_entry_authorized: reservation.isEntryAuthorized,
-      is_final_payment_paid: reservation.isFinalPaymentPaid,
-      origin: reservation.origin,
       created_at: reservation.createdAt.toISOString(),
     });
 
@@ -71,6 +68,7 @@ export class SupabaseReservationRepository implements IReservationRepository {
       throw new Error(`Error al persistir reserva en Supabase: ${error.message}`);
     }
   }
+
 
   async update(reservation: Reservation): Promise<void> {
     await this.save(reservation);
