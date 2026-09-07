@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PaymentsModule } from '../payments/payments.module';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { CourtsModule } from '../courts/courts.module';
@@ -16,9 +16,9 @@ import { AdminAnalyticsController } from './presentation/controllers/admin-analy
 
 @Module({
   imports: [
-    PaymentsModule,
-    ReservationsModule,
-    CourtsModule,
+    forwardRef(() => PaymentsModule),
+    forwardRef(() => ReservationsModule),
+    forwardRef(() => CourtsModule),
     ComplexesModule,
     UsersModule,
   ],

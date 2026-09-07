@@ -1,4 +1,5 @@
-import { IsIn, IsInt, IsNotEmpty, IsNumber, IsPositive, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { CourtType } from '../../domain/entities/court.entity';
 
 export class CreateCourtDto {
@@ -10,6 +11,16 @@ export class CreateCourtDto {
   @IsNotEmpty({ message: 'El nombre de la cancha es obligatorio' })
   name: string;
 
+  @Transform(({ value, obj }) => {
+    const val = value || obj?.sportType;
+    if (typeof val === 'string') {
+      const lower = val.toLowerCase();
+      if (lower.includes('futsal') || lower.includes('futbol') || lower.includes('fútbol')) return 'Futsal';
+      if (lower.includes('wally') || lower.includes('volei') || lower.includes('voley')) return 'Wally';
+      if (lower.includes('racket') || lower.includes('raquet')) return 'Racket';
+    }
+    return val;
+  })
   @IsIn(['Futsal', 'Wally', 'Racket'], {
     message: 'El tipo de cancha debe ser uno de los siguientes: Futsal, Wally, Racket',
   })
@@ -18,4 +29,17 @@ export class CreateCourtDto {
   @IsNumber({}, { message: 'El precio por hora debe ser un número' })
   @IsPositive({ message: 'El precio por hora debe ser mayor a 0' })
   pricePerHour: number;
+
+  @IsOptional()
+  @IsString()
+  sportType?: string;
+
+  @IsOptional()
+  @IsString()
+  surfaceType?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hasLighting?: boolean;
 }
+

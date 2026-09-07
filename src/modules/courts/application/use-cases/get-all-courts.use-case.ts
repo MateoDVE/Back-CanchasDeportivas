@@ -1,10 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ICourtRepository, COURT_REPOSITORY } from '../../domain/repositories/court.repository.interface';
+import {
+  ICourtRepository,
+  COURT_REPOSITORY,
+} from '../../domain/repositories/court.repository.interface';
 import { CourtOutputDto } from './create-court.use-case';
 
-/**
- * @reference HU-CLI-05 Consultar canchas
- */
 @Injectable()
 export class GetAllCourtsUseCase {
   constructor(
@@ -12,7 +12,7 @@ export class GetAllCourtsUseCase {
     private readonly courtRepository: ICourtRepository,
   ) {}
 
-  async execute(onlyActive: boolean = true): Promise<CourtOutputDto[]> {
+  async execute(onlyActive: boolean = false): Promise<CourtOutputDto[]> {
     const courts = await this.courtRepository.findAll(onlyActive);
     return courts.map((court) => ({
       id: court.id,

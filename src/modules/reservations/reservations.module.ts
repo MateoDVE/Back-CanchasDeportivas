@@ -39,13 +39,15 @@ import { CourtsModule } from '../courts/courts.module';
 import { ComplexesModule } from '../complexes/complexes.module';
 import { SchedulesModule } from '../schedules/schedules.module';
 import { UsersModule } from '../users/users.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
     forwardRef(() => CourtsModule),
     ComplexesModule,
-    SchedulesModule,
+    forwardRef(() => SchedulesModule),
     UsersModule,
+    forwardRef(() => PaymentsModule),
   ],
   controllers: [
     ReservationsController,

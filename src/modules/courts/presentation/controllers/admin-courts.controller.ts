@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Put,
   Patch,
@@ -16,6 +17,7 @@ import { UpdateCourtPriceUseCase } from '../../application/use-cases/update-cour
 import { ToggleCourtStatusUseCase } from '../../application/use-cases/toggle-court-status.use-case';
 import { ScheduleMaintenanceUseCase, IncidentOutputDto } from '../../application/use-cases/schedule-maintenance.use-case';
 import { RegisterIncidentUseCase } from '../../application/use-cases/register-incident.use-case';
+import { GetAllCourtsUseCase } from '../../application/use-cases/get-all-courts.use-case';
 import { CreateCourtDto } from '../dtos/create-court.dto';
 import { UpdateCourtDto } from '../dtos/update-court.dto';
 import { UpdateCourtPriceDto } from '../dtos/update-court-price.dto';
@@ -35,7 +37,17 @@ export class AdminCourtsController {
     private readonly toggleCourtStatusUseCase: ToggleCourtStatusUseCase,
     private readonly scheduleMaintenanceUseCase: ScheduleMaintenanceUseCase,
     private readonly registerIncidentUseCase: RegisterIncidentUseCase,
+    private readonly getAllCourtsUseCase: GetAllCourtsUseCase,
   ) {}
+
+  /**
+   * Listar todas las canchas para administración
+   */
+  @Get()
+  @Roles('ADMIN')
+  async listAll(): Promise<CourtOutputDto[]> {
+    return this.getAllCourtsUseCase.execute(false);
+  }
 
   /**
    * @reference HU-ADM-06 Registrar cancha

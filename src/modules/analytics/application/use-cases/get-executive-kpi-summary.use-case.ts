@@ -13,6 +13,14 @@ import {
 } from '../../../courts/domain/repositories/court.repository.interface';
 
 export interface ExecutiveKpiSummaryDto {
+  totalRevenue: number;
+  totalReservations: number;
+  completedReservations: number;
+  cancelledReservations: number;
+  pendingReceivables: number;
+  averageTicket: number;
+  occupancyRate: number;
+  // Campos complementarios
   monthlyRevenue: number;
   activeReservationsCount: number;
   totalReservationsCount: number;
@@ -43,15 +51,19 @@ export class GetExecutiveKpiSummaryUseCase {
     const now = new Date();
     const currentMonthPrefix = now.toISOString().slice(0, 7); // YYYY-MM
 
-    // 1. Ingresos del mes actual
+    // 1. Ingresos
     const payments = await this.paymentRepository.findAll();
-    const monthlyValidatedPayments = payments.filter((p) => {
+    const validatedPayments = payments.filter((p) => p.status === 'VALIDATED');
+    const monthlyValidatedPayments = validatedPayments.filter((p) => {
       const pMonth = p.createdAt.toISOString().slice(0, 7);
-      return p.status === 'VALIDATED' && pMonth === currentMonthPrefix;
+      return pMonth === currentMonthPrefix;
     });
 
     const monthlyRevenue = Number(
       monthlyValidatedPayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2),
+    );
+    const totalAllRevenue = Number(
+      validatedPayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2),
     );
 
     // 2. Reservas
@@ -59,11 +71,26 @@ export class GetExecutiveKpiSummaryUseCase {
     const activeReservations = allReservations.filter(
       (r) => r.status === 'CONFIRMED' || r.status === 'PENDING_VALIDATION',
     );
+    const completedReservations = allReservations.filter(
+      (r) => r.status === 'COMPLETED' || r.status === 'CONFIRMED',
+    );
     const cancelledReservations = allReservations.filter((r) => r.status === 'CANCELLED');
 
     const cancellationRatePercentage =
       allReservations.length > 0
         ? Number(((cancelledReservations.length / allReservations.length) * 100).toFixed(1))
+        : 0;
+
+    const pendingReceivables = Number(
+      allReservations
+        .filter((r) => r.status === 'CONFIRMED')
+        .reduce((sum, r) => sum + r.pendingBalance, 0)
+        .toFixed(2),
+    );
+
+    const averageTicket =
+      completedReservations.length > 0
+        ? Number((totalAllRevenue / completedReservations.length).toFixed(2))
         : 0;
 
     // 3. Cancha líder
@@ -107,6 +134,14 @@ export class GetExecutiveKpiSummaryUseCase {
         : 0;
 
     return {
+      totalRevenue: totalAllRevenue > 0 ? totalAllRevenue : monthlyRevenue,
+      totalReservations: allReservations.length,
+      completedReservations: completedReservations.length,
+      cancelledReservations: cancelledReservations.length,
+      pendingReceivables,
+      averageTicket,
+      occupancyRate: averageOccupancyPercentage,
+
       monthlyRevenue,
       activeReservationsCount: activeReservations.length,
       totalReservationsCount: allReservations.length,

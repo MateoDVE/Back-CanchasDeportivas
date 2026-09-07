@@ -1,11 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ICourtRepository, COURT_REPOSITORY } from '../../domain/repositories/court.repository.interface';
+import {
+  ICourtRepository,
+  COURT_REPOSITORY,
+} from '../../domain/repositories/court.repository.interface';
 import { EntityNotFoundException } from '../../../../common/domain/exceptions/domain.exception';
 import { CourtOutputDto } from './create-court.use-case';
 
-/**
- * @reference HU-CLI-05 Consultar detalle de cancha
- */
 @Injectable()
 export class GetCourtByIdUseCase {
   constructor(
@@ -13,10 +13,10 @@ export class GetCourtByIdUseCase {
     private readonly courtRepository: ICourtRepository,
   ) {}
 
-  async execute(courtId: number): Promise<CourtOutputDto> {
-    const court = await this.courtRepository.findById(courtId);
+  async execute(id: number): Promise<CourtOutputDto> {
+    const court = await this.courtRepository.findById(id);
     if (!court) {
-      throw new EntityNotFoundException(`La cancha con ID ${courtId} no existe.`);
+      throw new EntityNotFoundException(`Cancha con ID ${id} no encontrada.`);
     }
 
     return {

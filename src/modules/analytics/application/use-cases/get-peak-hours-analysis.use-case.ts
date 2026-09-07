@@ -4,17 +4,11 @@ import {
   RESERVATION_REPOSITORY,
 } from '../../../reservations/domain/repositories/reservation.repository.interface';
 
-export interface HourSlotStatDto {
-  hour: string; // "08:00", "09:00", etc.
-  bookingsCount: number;
+export interface PeakHourItemDto {
+  hour: number;
+  count: number;
+  hourLabel: string;
   isPeak: boolean;
-}
-
-export interface PeakHoursAnalysisResponse {
-  peakHour: string;
-  peakHourBookingsCount: number;
-  totalAnalyzedReservations: number;
-  hourlyDistribution: HourSlotStatDto[];
 }
 
 /**
@@ -27,7 +21,7 @@ export class GetPeakHoursAnalysisUseCase {
     private readonly reservationRepository: IReservationRepository,
   ) {}
 
-  async execute(courtId?: number): Promise<PeakHoursAnalysisResponse> {
+  async execute(courtId?: number): Promise<PeakHourItemDto[]> {
     let reservations = await this.reservationRepository.findAll();
     reservations = reservations.filter(
       (r) =>
@@ -35,10 +29,9 @@ export class GetPeakHoursAnalysisUseCase {
         (!courtId || r.courtId === courtId),
     );
 
-    const hourCounts: Record<string, number> = {};
-    for (let h = 8; h <= 23; h++) {
-      const label = `${h.toString().padStart(2, '0')}:00`;
-      hourCounts[label] = 0;
+    const hourCounts: Record<number, number> = {};
+    for (let h = 8; h <= 22; h++) {
+      hourCounts[h] = 0;
     }
 
     for (const res of reservations) {
@@ -46,36 +39,27 @@ export class GetPeakHoursAnalysisUseCase {
       const [endHour] = res.endTime.split(':').map(Number);
 
       for (let h = startHour; h < endHour; h++) {
-        const label = `${h.toString().padStart(2, '0')}:00`;
-        if (hourCounts[label] !== undefined) {
-          hourCounts[label]++;
+        if (hourCounts[h] !== undefined) {
+          hourCounts[h]++;
         }
       }
     }
 
-    let peakHour = '19:00';
     let maxCount = 0;
-
-    for (const [hour, count] of Object.entries(hourCounts)) {
+    for (const count of Object.values(hourCounts)) {
       if (count > maxCount) {
         maxCount = count;
-        peakHour = hour;
       }
     }
 
-    const hourlyDistribution: HourSlotStatDto[] = Object.entries(hourCounts).map(
-      ([hour, count]) => ({
+    return Object.entries(hourCounts).map(([hStr, count]) => {
+      const hour = parseInt(hStr, 10);
+      return {
         hour,
-        bookingsCount: count,
+        count,
+        hourLabel: `${hour.toString().padStart(2, '0')}:00 - ${(hour + 1).toString().padStart(2, '0')}:00`,
         isPeak: count === maxCount && maxCount > 0,
-      }),
-    );
-
-    return {
-      peakHour,
-      peakHourBookingsCount: maxCount,
-      totalAnalyzedReservations: reservations.length,
-      hourlyDistribution,
-    };
+      };
+    });
   }
 }

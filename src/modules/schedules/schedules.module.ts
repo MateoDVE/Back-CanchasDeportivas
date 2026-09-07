@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { SCHEDULE_REPOSITORY } from './domain/repositories/schedule.repository.interface';
 import { InMemoryScheduleRepository } from './infrastructure/repositories/in-memory-schedule.repository';
@@ -11,7 +11,7 @@ import { AdminSchedulesController } from './presentation/controllers/admin-sched
 import { CourtsModule } from '../courts/courts.module';
 
 @Module({
-  imports: [CourtsModule],
+  imports: [forwardRef(() => CourtsModule)],
   controllers: [AdminSchedulesController],
   providers: [
     InMemoryScheduleRepository,

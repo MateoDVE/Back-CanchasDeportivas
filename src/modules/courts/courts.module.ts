@@ -18,6 +18,8 @@ import { ScheduleMaintenanceUseCase } from './application/use-cases/schedule-mai
 import { RegisterIncidentUseCase } from './application/use-cases/register-incident.use-case';
 import { GetAffectedReservationsUseCase } from './application/use-cases/get-affected-reservations.use-case';
 import { RescheduleIncidentUseCase } from './application/use-cases/reschedule-incident.use-case';
+import { GetAllCourtsUseCase } from './application/use-cases/get-all-courts.use-case';
+import { GetCourtByIdUseCase } from './application/use-cases/get-court-by-id.use-case';
 import { AdminCourtsController } from './presentation/controllers/admin-courts.controller';
 import { CourtsController } from './presentation/controllers/courts.controller';
 import { IncidentsController } from './presentation/controllers/incidents.controller';
@@ -72,6 +74,8 @@ import { ReservationsModule } from '../reservations/reservations.module';
     RegisterIncidentUseCase,
     GetAffectedReservationsUseCase,
     RescheduleIncidentUseCase,
+    GetAllCourtsUseCase,
+    GetCourtByIdUseCase,
   ],
   exports: [
     COURT_REPOSITORY,
@@ -87,6 +91,8 @@ import { ReservationsModule } from '../reservations/reservations.module';
     RegisterIncidentUseCase,
     GetAffectedReservationsUseCase,
     RescheduleIncidentUseCase,
+    GetAllCourtsUseCase,
+    GetCourtByIdUseCase,
   ],
 })
 export class CourtsModule {}

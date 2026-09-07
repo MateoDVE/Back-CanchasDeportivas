@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { PAYMENT_REPOSITORY } from './domain/repositories/payment.repository.interface';
 import { InMemoryPaymentRepository } from './infrastructure/repositories/in-memory-payment.repository';
@@ -21,7 +21,12 @@ import { ComplexesModule } from '../complexes/complexes.module';
 import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [ReservationsModule, CourtsModule, ComplexesModule, UsersModule],
+  imports: [
+    forwardRef(() => ReservationsModule),
+    forwardRef(() => CourtsModule),
+    ComplexesModule,
+    UsersModule,
+  ],
   controllers: [PaymentsController, SecretaryPaymentsController],
   providers: [
     InMemoryPaymentRepository,

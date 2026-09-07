@@ -44,9 +44,19 @@ export class SupabaseCourtRepository implements ICourtRepository {
   }
 
   async save(court: Omit<Court, 'id'>): Promise<Court> {
-    const { data, error } = await this.supabase
+    const { data: maxRow } = await this.supabase
+      .from('courts')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextId = (maxRow?.id ? Number(maxRow.id) : 0) + 1;
+
+    let { data, error } = await this.supabase
       .from('courts')
       .insert({
+        id: nextId,
         complex_id: court.complexId,
         name: court.name,
         court_type: court.courtType,
@@ -56,11 +66,28 @@ export class SupabaseCourtRepository implements ICourtRepository {
       .select()
       .single();
 
+    if (error && error.message?.includes('identity')) {
+      const fallback = await this.supabase
+        .from('courts')
+        .insert({
+          complex_id: court.complexId,
+          name: court.name,
+          court_type: court.courtType,
+          price_per_hour: court.pricePerHour,
+          is_active: court.isActive,
+        })
+        .select()
+        .single();
+      data = fallback.data;
+      error = fallback.error;
+    }
+
     if (error || !data) {
       throw new Error(`Error al crear cancha en Supabase: ${error?.message}`);
     }
     return this.toDomain(data);
   }
+
 
   async updatePrice(id: number, newPrice: number): Promise<void> {
     const { error } = await this.supabase
