@@ -43,13 +43,28 @@ export class RegisterFinalPaymentUseCase {
       throw new ValidationException('Esta reserva ya no tiene saldo pendiente por pagar.');
     }
 
+    const existingPayments = await this.paymentRepository.findByReservationId(input.reservationId);
+    const hasFinalPayment = existingPayments.some(
+      (p) => p.paymentType === 'SALDO_FINAL' && p.status === 'VALIDATED',
+    );
+    if (hasFinalPayment) {
+      throw new ValidationException('Esta reserva ya no tiene saldo pendiente por pagar (el saldo final ya fue registrado).');
+    }
+
+    if (reservation.status === 'CANCELLED') {
+      throw new ValidationException('No se puede registrar el pago de una reserva cancelada.');
+    }
+
+    const method: PaymentMethod =
+      (input.paymentMethod as string) === 'CASH' ? 'EFECTIVO' : input.paymentMethod;
+
     // Registrar pago final simulado
     const payment = new Payment(
       0, // Asignado por repo
       reservation.id,
       input.amount,
       'SALDO_FINAL',
-      input.paymentMethod,
+      method,
       null,
       'VALIDATED',
       input.secretaryId,
