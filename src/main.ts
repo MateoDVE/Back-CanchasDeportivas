@@ -9,7 +9,7 @@ async function bootstrap() {
 
   // Habilitar CORS para conexión con Angular Frontend
   app.enableCors({
-    origin: '*',
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

@@ -11,6 +11,8 @@ import { CourtsModule } from './modules/courts/courts.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { CashShiftsModule } from './modules/cash-shifts/cash-shifts.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
     SchedulesModule,
     ReservationsModule,
     PaymentsModule,
+    CashShiftsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

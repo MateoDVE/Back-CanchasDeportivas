@@ -8,12 +8,14 @@ export const SupabaseProvider: Provider = {
   provide: SUPABASE_CLIENT,
   useFactory: (configService: ConfigService): SupabaseClient | null => {
     const logger = new Logger('SupabaseProvider');
-    const url = configService.get<string>('SUPABASE_URL');
+    let url = configService.get<string>('SUPABASE_URL');
     const key =
       configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
       configService.get<string>('SUPABASE_ANON_KEY');
 
     if (url && key) {
+      // Normalizar URL eliminando sufijo /rest/v1 o slashes finales accidentales
+      url = url.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
       logger.log(`Conectando cliente Supabase a ${url}`);
       return createClient(url, key, {
         auth: {
