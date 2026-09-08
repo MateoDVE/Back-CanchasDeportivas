@@ -1,5 +1,6 @@
 import {
   Controller,
+  Inject,
   Get,
   Post,
   Body,
@@ -9,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { IUserRepository, USER_REPOSITORY } from '../../../users/domain/repositories/user.repository.interface';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
@@ -35,6 +37,7 @@ import { RescheduleReservationDto } from '../dtos/reschedule-reservation.dto';
 @Roles('SECRETARIA', 'ADMIN')
 export class SecretaryReservationsController {
   constructor(
+    @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
     private readonly getDailyOperationalBoardUseCase: GetDailyOperationalBoardUseCase,
     private readonly searchReservationsUseCase: SearchReservationsUseCase,
     private readonly getReservationDetailUseCase: GetReservationDetailUseCase,
@@ -52,6 +55,13 @@ export class SecretaryReservationsController {
   /**
    * @reference HU-SEC-02 Consultar panel operativo
    */
+  @Get('clients/search')
+  async searchClients(@Query('q') query = '') {
+    if (query.trim().length < 2) return [];
+    const clients = await this.users.searchClients(query.slice(0, 80));
+    return clients.map(({ id, name, ci, phone, email }) => ({ id, name, ci, phone, email }));
+  }
+
   @Get('operational-board')
   async getOperationalBoard(@Query('date') date?: string) {
     return this.getDailyOperationalBoardUseCase.execute(date);

@@ -96,6 +96,18 @@ export class SupabaseUserRepository implements IUserRepository {
     }
   }
 
+  async searchClients(query: string): Promise<User[]> {
+    const term = query.replace(/[^\p{L}\p{N}\s@.+-]/gu, '').trim().slice(0, 80);
+    if (term.length < 2) return [];
+    const pattern = '%' + term + '%';
+    const { data, error } = await this.supabase.from('users').select('*')
+      .eq('role', 'CLIENTE').eq('status', 'ACTIVE')
+      .or(['name', 'ci', 'phone', 'email'].map(field => field + '.ilike.' + pattern).join(','))
+      .order('name').limit(20);
+    if (error) throw new Error('No se pudieron buscar clientes.');
+    return (data || []).map(row => this.toDomain(row));
+  }
+
   async findAll(): Promise<User[]> {
     const { data, error } = await this.supabase.from('users').select('*');
     if (error || !data) return [];

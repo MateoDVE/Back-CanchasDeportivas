@@ -1,9 +1,9 @@
 import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, Matches } from 'class-validator';
 
 export class ManualReservationDto {
-  @IsString({ message: 'El ID del cliente es obligatorio' })
-  @IsNotEmpty({ message: 'El ID del cliente no puede estar vacío' })
-  clientId: string;
+  @IsOptional()
+  @IsString()
+  clientId?: string;
 
   @IsInt({ message: 'El ID de la cancha debe ser un número entero' })
   @IsPositive({ message: 'El ID de la cancha debe ser positivo' })

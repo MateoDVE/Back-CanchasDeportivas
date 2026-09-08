@@ -9,4 +9,5 @@ export interface IUserRepository {
   save(user: User): Promise<void>;
   update(user: User): Promise<void>;
   findAll(): Promise<User[]>;
+  searchClients(query: string): Promise<User[]>;
 }
