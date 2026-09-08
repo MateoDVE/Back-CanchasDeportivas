@@ -7,27 +7,6 @@ export class InMemoryCourtRepository implements ICourtRepository {
   private courts: Map<number, Court> = new Map();
   private nextId = 1;
 
-  constructor() {
-    this.seedDefaultCourts();
-  }
-
-  private seedDefaultCourts() {
-    // Canchas para Complejo 1
-    const court1 = new Court(this.nextId++, 1, 'Cancha Principal (Césped Sintético)', 'Futsal', 100.0, true);
-    const court2 = new Court(this.nextId++, 1, 'Cancha Wally 1', 'Wally', 60.0, true);
-    const court3 = new Court(this.nextId++, 1, 'Cancha Racket 1', 'Racket', 50.0, true);
-
-    // Canchas para Complejo 2
-    const court4 = new Court(this.nextId++, 2, 'Cancha Techada 1', 'Futsal', 120.0, true);
-    const court5 = new Court(this.nextId++, 2, 'Cancha Wally Pro', 'Wally', 70.0, true);
-
-    this.courts.set(court1.id, court1);
-    this.courts.set(court2.id, court2);
-    this.courts.set(court3.id, court3);
-    this.courts.set(court4.id, court4);
-    this.courts.set(court5.id, court5);
-  }
-
   async findById(id: number): Promise<Court | null> {
     return this.courts.get(id) || null;
   }
@@ -49,6 +28,7 @@ export class InMemoryCourtRepository implements ICourtRepository {
       court.courtType,
       court.pricePerHour,
       court.isActive,
+      court.images,
     );
     this.courts.set(id, entity);
     return entity;

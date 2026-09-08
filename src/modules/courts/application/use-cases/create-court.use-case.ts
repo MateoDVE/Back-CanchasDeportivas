@@ -9,6 +9,7 @@ export interface CreateCourtInput {
   name: string;
   courtType: CourtType;
   pricePerHour: number;
+  images?: string[];
 }
 
 export interface CourtOutputDto {
@@ -17,6 +18,7 @@ export interface CourtOutputDto {
   name: string;
   courtType: string;
   pricePerHour: number;
+  images?: string[];
   isActive: boolean;
 }
 
@@ -38,7 +40,7 @@ export class CreateCourtUseCase {
       throw new EntityNotFoundException(`El complejo deportivo con ID ${input.complexId} no existe.`);
     }
 
-    const validTypes: CourtType[] = ['Futsal', 'Wally', 'Racket'];
+    const validTypes: CourtType[] = ['Futsal', 'Wally', 'Racket', 'Padel'];
     if (!validTypes.includes(input.courtType)) {
       throw new ValidationException(`Tipo de cancha inválido. Tipos permitidos: ${validTypes.join(', ')}.`);
     }
@@ -49,6 +51,7 @@ export class CreateCourtUseCase {
       courtType: input.courtType,
       pricePerHour: input.pricePerHour,
       isActive: true,
+      images: input.images || [],
       updatePrice(p: number) { this.updatePrice(p); },
       activate() { this.isActive = true; },
       deactivate() { this.isActive = false; },
@@ -61,6 +64,7 @@ export class CreateCourtUseCase {
       courtType: court.courtType,
       pricePerHour: court.pricePerHour,
       isActive: court.isActive,
+      images: court.images,
     };
   }
 }

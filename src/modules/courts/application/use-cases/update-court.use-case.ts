@@ -7,6 +7,7 @@ import { CourtOutputDto } from './create-court.use-case';
 export interface UpdateCourtInput {
   id: number;
   name?: string;
+  images?: string[];
   courtType?: CourtType;
   pricePerHour?: number;
 }
@@ -27,9 +28,10 @@ export class UpdateCourtUseCase {
       throw new EntityNotFoundException(`La cancha con ID ${input.id} no existe.`);
     }
 
+    if (input.images !== undefined) court.images = input.images;
     if (input.name !== undefined) court.name = input.name.trim();
     if (input.courtType !== undefined) {
-      const valid: CourtType[] = ['Futsal', 'Wally', 'Racket'];
+      const valid: CourtType[] = ['Futsal', 'Wally', 'Racket', 'Padel'];
       if (!valid.includes(input.courtType)) {
         throw new ValidationException(`Tipo de cancha no válido: ${input.courtType}`);
       }
@@ -48,6 +50,7 @@ export class UpdateCourtUseCase {
       courtType: court.courtType,
       pricePerHour: court.pricePerHour,
       isActive: court.isActive,
+      images: court.images,
     };
   }
 }

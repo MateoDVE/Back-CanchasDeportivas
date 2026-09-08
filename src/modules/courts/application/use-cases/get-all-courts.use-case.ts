@@ -21,6 +21,7 @@ export class GetAllCourtsUseCase {
       courtType: court.courtType,
       pricePerHour: court.pricePerHour,
       isActive: court.isActive,
+      images: court.images,
     }));
   }
 }

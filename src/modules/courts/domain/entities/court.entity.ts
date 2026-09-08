@@ -1,6 +1,6 @@
 import { ValidationException } from '../../../../common/domain/exceptions/domain.exception';
 
-export type CourtType = 'Futsal' | 'Wally' | 'Racket';
+export type CourtType = 'Futsal' | 'Wally' | 'Racket' | 'Padel';
 
 export class Court {
   constructor(
@@ -10,6 +10,7 @@ export class Court {
     public courtType: CourtType,
     private _pricePerHour: number,
     public isActive: boolean = true,
+    public images: string[] = [],
   ) {
     this.validatePrice(_pricePerHour);
   }

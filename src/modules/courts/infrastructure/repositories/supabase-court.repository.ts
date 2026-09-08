@@ -11,7 +11,14 @@ export class SupabaseCourtRepository implements ICourtRepository {
     private readonly supabase: SupabaseClient,
   ) {}
 
+  private supportsImages = false;
+
+  private imageFields(court: { images?: string[] }): { images?: string[] } {
+    return this.supportsImages || court.images?.length ? { images: court.images || [] } : {};
+  }
+
   private toDomain(row: any): Court {
+    if ('images' in row) this.supportsImages = true;
     return new Court(
       row.id,
       row.complex_id,
@@ -19,6 +26,7 @@ export class SupabaseCourtRepository implements ICourtRepository {
       row.court_type as CourtType,
       parseFloat(row.price_per_hour),
       row.is_active,
+      row.images || [],
     );
   }
 
@@ -62,6 +70,7 @@ export class SupabaseCourtRepository implements ICourtRepository {
         court_type: court.courtType,
         price_per_hour: court.pricePerHour,
         is_active: court.isActive,
+        ...this.imageFields(court),
       })
       .select()
       .single();
@@ -75,6 +84,7 @@ export class SupabaseCourtRepository implements ICourtRepository {
           court_type: court.courtType,
           price_per_hour: court.pricePerHour,
           is_active: court.isActive,
+        ...this.imageFields(court),
         })
         .select()
         .single();
@@ -108,6 +118,7 @@ export class SupabaseCourtRepository implements ICourtRepository {
         court_type: court.courtType,
         price_per_hour: court.pricePerHour,
         is_active: court.isActive,
+        ...this.imageFields(court),
       })
       .eq('id', court.id);
 
