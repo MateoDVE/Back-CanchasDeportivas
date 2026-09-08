@@ -10,28 +10,6 @@ export class InMemoryScheduleRepository implements IScheduleRepository {
   private schedules: CourtSchedule[] = [];
   private nextId = 1;
 
-  constructor() {
-    this.seedDefaultSchedules();
-  }
-
-  private seedDefaultSchedules() {
-    // Horario por defecto: 1 al 5 para todas las canchas (de 08:00 a 23:00 de Lunes a Domingo)
-    for (let courtId = 1; courtId <= 5; courtId++) {
-      for (let day = 1; day <= 7; day++) {
-        this.schedules.push(
-          new CourtSchedule(
-            this.nextId++,
-            courtId,
-            day,
-            null,
-            '08:00',
-            '23:00',
-          ),
-        );
-      }
-    }
-  }
-
   async findByCourtAndDay(courtId: number, dayOfWeek: number): Promise<CourtSchedule | null> {
     const found = this.schedules.find(
       (s) => s.courtId === courtId && s.dayOfWeek === dayOfWeek,
