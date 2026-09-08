@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ServiceUnavailableException, ConflictException } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ICashShiftRepository } from '../../domain/repositories/cash-shift.repository.interface';
 import { CashShift } from '../../domain/entities/cash-shift.entity';
@@ -6,6 +6,15 @@ import { SUPABASE_CLIENT } from '../../../../common/supabase/supabase.provider';
 
 @Injectable()
 export class SupabaseCashShiftRepository implements ICashShiftRepository {
+  private handleError(error: { code?: string; message: string }): never {
+    if (error.code === 'PGRST204' || error.code === '42703' || error.code === '42P01') {
+      throw new ServiceUnavailableException('El cierre de caja requiere actualizar la base de datos. Ejecuta la migración 20260908_cash_shift_schema.sql. No se registró el cierre.');
+    }
+    if (error.code === '23505') {
+      throw new ConflictException('Ya existe un cierre para esta secretaria y fecha. Actualiza la pantalla antes de continuar.');
+    }
+    throw new Error(`Error de persistencia de cierre: ${error.message}`);
+  }
   constructor(
     @Inject(SUPABASE_CLIENT)
     private readonly supabase: SupabaseClient,
@@ -19,12 +28,12 @@ export class SupabaseCashShiftRepository implements ICashShiftRepository {
       parseFloat(row.total_system_cash || 0),
       parseFloat(row.total_system_qr || 0),
       parseFloat(row.total_system || 0),
-      parseFloat(row.total_declared_cash || 0),
+      parseFloat(row.total_declared_cash ?? row.total_declared ?? 0),
       parseFloat(row.difference || 0),
       row.notes,
-      row.is_closed ?? false,
+      row.is_closed ?? Boolean(row.closed_at),
       row.closed_at ? new Date(row.closed_at) : null,
-      new Date(row.created_at),
+      new Date(row.created_at || row.closed_at || row.shift_date),
     );
   }
 
@@ -35,7 +44,8 @@ export class SupabaseCashShiftRepository implements ICashShiftRepository {
       .eq('id', id)
       .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) this.handleError(error);
+    if (!data) return null;
     return this.toDomain(data);
   }
 
@@ -47,7 +57,8 @@ export class SupabaseCashShiftRepository implements ICashShiftRepository {
       .eq('shift_date', date)
       .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) this.handleError(error);
+    if (!data) return null;
     return this.toDomain(data);
   }
 
@@ -70,8 +81,9 @@ export class SupabaseCashShiftRepository implements ICashShiftRepository {
       .select()
       .single();
 
-    if (error || !data) {
-      throw new Error(`Error al persistir cash shift en Supabase: ${error?.message}`);
+    if (error) this.handleError(error);
+    if (!data) {
+      throw new Error('Supabase no devolvió el cierre guardado.');
     }
     return this.toDomain(data);
   }
@@ -89,7 +101,7 @@ export class SupabaseCashShiftRepository implements ICashShiftRepository {
       .eq('id', shift.id);
 
     if (error) {
-      throw new Error(`Error al actualizar cash shift en Supabase: ${error.message}`);
+      this.handleError(error);
     }
   }
 
