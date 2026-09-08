@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ServiceUnavailableException } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
   IScheduleRepository,
@@ -57,7 +57,8 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
       .not('day_of_week', 'is', null)
       .order('day_of_week', { ascending: true });
 
-    if (error || !data) return [];
+    if (error) throw new ServiceUnavailableException('No se pudieron cargar los horarios.');
+    if (!data) return [];
     return data.map((r) => this.toDomain(r));
   }
 
@@ -65,60 +66,78 @@ export class SupabaseScheduleRepository implements IScheduleRepository {
     courtId: number,
     schedules: ScheduleConfigItem[],
   ): Promise<CourtSchedule[]> {
-    // 1. Eliminar anteriores
-    await this.supabase
-      .from('court_schedules')
-      .delete()
-      .eq('court_id', courtId)
+    // Keep existing rows until every requested open day has been saved.
+    const { data: existing, error: readError } = await this.supabase
+      .from('court_schedules').select('*').eq('court_id', courtId)
       .not('day_of_week', 'is', null);
+    if (readError || !existing) throw new ServiceUnavailableException('No se pudieron leer los horarios actuales.');
 
-    // 2. Insertar nuevos
-    const rowsToInsert = schedules.map((item) => ({
-      court_id: courtId,
-      day_of_week: item.dayOfWeek,
-      open_time: item.openTime,
-      close_time: item.closeTime,
-    }));
-
-    const { data, error } = await this.supabase
-      .from('court_schedules')
-      .insert(rowsToInsert)
-      .select();
-
-    if (error || !data) {
-      throw new Error(`Error al guardar horarios en Supabase: ${error?.message}`);
+    const keptIds: number[] = [];
+    const result: CourtSchedule[] = [];
+    for (const item of schedules) {
+      const previous = existing.find(row => row.day_of_week === item.dayOfWeek);
+      const values = { court_id: courtId, day_of_week: item.dayOfWeek,
+        open_time: item.openTime, close_time: item.closeTime };
+      if (previous) {
+        const { data, error } = await this.supabase.from('court_schedules')
+          .update(values).eq('id', previous.id).eq('court_id', courtId).select().single();
+        if (error || !data) throw new ServiceUnavailableException('No se pudo actualizar el horario. Los demás días no se eliminaron.');
+        keptIds.push(previous.id);
+        result.push(this.toDomain(data));
+      } else {
+        const row = await this.insertSchedule(values);
+        keptIds.push(row.id);
+        result.push(this.toDomain(row));
+      }
     }
 
-    return data.map((r) => this.toDomain(r));
+    // Delete only the previously stored days explicitly marked closed.
+    const removedIds = existing.filter(row => !keptIds.includes(row.id)).map(row => row.id);
+    if (removedIds.length) {
+      const { error } = await this.supabase.from('court_schedules').delete()
+        .eq('court_id', courtId).in('id', removedIds);
+      if (error) throw new ServiceUnavailableException('Los horarios se guardaron, pero no se pudieron cerrar los días seleccionados. Recarga y revisa la semana.');
+    }
+    return result;
   }
 
+  private async insertSchedule(values: {
+    court_id: number; day_of_week?: number; specific_date?: string; open_time: string; close_time: string;
+  }): Promise<any> {
+    // Support legacy schemas with missing defaults or sequences behind imported IDs.
+    const first = await this.supabase.from('court_schedules').insert(values).select().single();
+    if (!first.error && first.data) return first.data;
+    const missingId = first.error?.code === '23502' && first.error.message.includes('"id"');
+    const duplicateId = (error: any) => error?.code === '23505'
+      && error.message?.includes('"court_schedules_pkey"');
+    if (!missingId && !duplicateId(first.error)) {
+      throw new ServiceUnavailableException('No se pudo crear el horario. Los horarios anteriores se conservan.');
+    }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: last, error: readError } = await this.supabase.from('court_schedules')
+        .select('id').order('id', { ascending: false }).limit(1).maybeSingle();
+      if (readError) throw new ServiceUnavailableException('No se pudo asignar el identificador del horario.');
+      const saved = await this.supabase.from('court_schedules')
+        .insert({ ...values, id: Number(last?.id || 0) + 1 }).select().single();
+      if (!saved.error && saved.data) return saved.data;
+      if (!duplicateId(saved.error)) break;
+    }
+    throw new ServiceUnavailableException('No se pudo crear el horario. Recarga la pantalla e intenta nuevamente.');
+  }
   async setSpecificDateSchedule(
     courtId: number,
     specificDate: string,
     openTime: string,
     closeTime: string,
   ): Promise<CourtSchedule> {
-    await this.supabase
-      .from('court_schedules')
-      .delete()
-      .eq('court_id', courtId)
-      .eq('specific_date', specificDate);
-
-    const { data, error } = await this.supabase
-      .from('court_schedules')
-      .insert({
-        court_id: courtId,
-        specific_date: specificDate,
-        open_time: openTime,
-        close_time: closeTime,
-      })
-      .select()
-      .single();
-
-    if (error || !data) {
-      throw new Error(`Error al registrar horario especial en Supabase: ${error?.message}`);
-    }
-
+    const { data: existing, error: readError } = await this.supabase.from('court_schedules')
+      .select('id').eq('court_id', courtId).eq('specific_date', specificDate).maybeSingle();
+    if (readError) throw new ServiceUnavailableException('No se pudo leer el horario especial.');
+    const values = { court_id: courtId, specific_date: specificDate, open_time: openTime, close_time: closeTime };
+    if (!existing) return this.toDomain(await this.insertSchedule(values));
+    const { data, error } = await this.supabase.from('court_schedules').update(values)
+      .eq('id', existing.id).select().single();
+    if (error || !data) throw new ServiceUnavailableException('No se pudo actualizar el horario especial.');
     return this.toDomain(data);
   }
 }

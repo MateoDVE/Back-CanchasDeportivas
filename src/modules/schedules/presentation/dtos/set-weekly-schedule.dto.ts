@@ -1,5 +1,6 @@
 import {
-  ArrayMinSize,
+  ArrayMaxSize,
+  ArrayUnique,
   IsArray,
   IsInt,
   Matches,
@@ -28,7 +29,8 @@ export class ScheduleItemDto {
 
 export class SetWeeklyScheduleDto {
   @IsArray({ message: 'Los horarios deben ser proporcionados en una lista' })
-  @ArrayMinSize(1, { message: 'Debe configurar al menos un día' })
+  @ArrayMaxSize(7)
+  @ArrayUnique((item: ScheduleItemDto) => item.dayOfWeek)
   @ValidateNested({ each: true })
   @Type(() => ScheduleItemDto)
   schedules: ScheduleItemDto[];
