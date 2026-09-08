@@ -1,3 +1,5 @@
+import { ICourtIncidentRepository, COURT_INCIDENT_REPOSITORY } from '../../../courts/domain/repositories/court-incident.repository.interface';
+import { overlapsIncident } from '../../../courts/domain/entities/incident-overlap';
 import { Injectable, Inject } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { IReservationRepository, RESERVATION_REPOSITORY } from '../../domain/repositories/reservation.repository.interface';
@@ -44,6 +46,7 @@ export interface TemporalReservationOutputDto {
 @Injectable()
 export class CreateTemporalReservationUseCase {
   constructor(
+    @Inject(COURT_INCIDENT_REPOSITORY) private readonly incidents: ICourtIncidentRepository,
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
     @Inject(COURT_REPOSITORY)
@@ -61,6 +64,9 @@ export class CreateTemporalReservationUseCase {
 
     // 2. Validar Value Object TimeSlot (duración >= 1h entera, minutos válidos)
     const timeSlot = new TimeSlot(input.startTime, input.endTime);
+    if (overlapsIncident(await this.incidents.findByCourt(input.courtId), input.date, input.startTime, input.endTime)) {
+      throw new CourtSlotOccupiedException('El horario coincide con un mantenimiento o incidente. Selecciona otro horario.');
+    }
 
     // 3. Validar horario de atención de la cancha en esa fecha
     const [year, month, day] = input.date.split('-').map(Number);
@@ -80,7 +86,7 @@ export class CreateTemporalReservationUseCase {
       throw new ValidationException(`La cancha no atiende el día seleccionado (${input.date}).`);
     }
 
-    if (input.startTime < schedule.openTime || input.endTime > schedule.closeTime) {
+    if (input.startTime < schedule.openTime.slice(0, 5) || input.endTime > schedule.closeTime.slice(0, 5)) {
       throw new ValidationException(
         `El horario seleccionado (${input.startTime} a ${input.endTime}) está fuera del horario de atención de la cancha (${schedule.openTime} a ${schedule.closeTime}).`,
       );
