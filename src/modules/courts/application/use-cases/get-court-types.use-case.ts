@@ -13,6 +13,7 @@ export interface CourtTypeDescription {
 export class GetCourtTypesUseCase {
   execute(): CourtTypeDescription[] {
     return [
+      { type: 'Padel', description: 'Canchas de pádel.' },
       {
         type: 'Futsal',
         description: 'Canchas de fútbol de salón con césped sintético o parqué reglamentario.',

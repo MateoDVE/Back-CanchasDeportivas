@@ -45,13 +45,14 @@ export class ScheduleMaintenanceUseCase {
       throw new ValidationException('Las fechas deben tener un formato ISO válido.');
     }
 
+    const validated = new CourtIncident(0, input.courtId, start, end, input.reason.trim());
     const incident = await this.incidentRepository.save({
       courtId: input.courtId,
       startDatetime: start,
       endDatetime: end,
       reason: input.reason.trim(),
       createdAt: new Date(),
-      isActiveAt(d: Date) { return this.isActiveAt(d); },
+      isActiveAt(d: Date) { return validated.isActiveAt(d); },
     });
 
     return {

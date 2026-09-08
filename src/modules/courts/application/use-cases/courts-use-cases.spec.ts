@@ -1,5 +1,6 @@
 import { GetAllCourtsUseCase } from './get-all-courts.use-case';
 import { GetCourtByIdUseCase } from './get-court-by-id.use-case';
+import { Court } from '../../domain/entities/court.entity';
 import { InMemoryCourtRepository } from '../../infrastructure/repositories/in-memory-court.repository';
 
 describe('Courts Use Cases', () => {
@@ -7,8 +8,9 @@ describe('Courts Use Cases', () => {
   let getAllCourtsUseCase: GetAllCourtsUseCase;
   let getCourtByIdUseCase: GetCourtByIdUseCase;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     courtRepo = new InMemoryCourtRepository();
+    await courtRepo.save(new Court(1, 1, "Cancha de prueba", "Futsal", 100, true));
     getAllCourtsUseCase = new GetAllCourtsUseCase(courtRepo);
     getCourtByIdUseCase = new GetCourtByIdUseCase(courtRepo);
   });

@@ -7,31 +7,6 @@ export class InMemoryComplexRepository implements IComplexRepository {
   private complexes: Map<number, Complex> = new Map();
   private nextId = 1;
 
-  constructor() {
-    this.seedDefaultComplexes();
-  }
-
-  private seedDefaultComplexes() {
-    const c1 = new Complex(
-      this.nextId++,
-      'Complejo Deportivo Mariscal',
-      'Av. América #1234, Zona Norte',
-      'Cel: 71234567 - reservas@mariscal.com',
-      'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=COMPLEJO_MARISCAL_PAGO_QR',
-      true,
-    );
-    const c2 = new Complex(
-      this.nextId++,
-      'Polideportivo Los Álamos',
-      'Calle Los Sauces esq. Palmeras #45',
-      'Cel: 72345678 - contacto@losalamos.com',
-      'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=POLIDEPORTIVO_LOS_ALAMOS_QR',
-      true,
-    );
-    this.complexes.set(c1.id, c1);
-    this.complexes.set(c2.id, c2);
-  }
-
   async findById(id: number): Promise<Complex | null> {
     return this.complexes.get(id) || null;
   }

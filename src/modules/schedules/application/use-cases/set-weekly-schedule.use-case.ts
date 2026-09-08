@@ -36,8 +36,8 @@ export class SetWeeklyScheduleUseCase {
       throw new EntityNotFoundException(`La cancha con ID ${input.courtId} no existe.`);
     }
 
-    if (!input.schedules || input.schedules.length === 0) {
-      throw new ValidationException('Debe proporcionar al menos un horario de atención.');
+    if (!Array.isArray(input.schedules)) {
+      throw new ValidationException('Debe proporcionar una lista de horarios de atención.');
     }
 
     // Validar cada elemento

@@ -1,3 +1,5 @@
+import { ICourtIncidentRepository, COURT_INCIDENT_REPOSITORY } from '../../../courts/domain/repositories/court-incident.repository.interface';
+import { overlapsIncident } from '../../../courts/domain/entities/incident-overlap';
 import { Injectable, Inject } from '@nestjs/common';
 import { IReservationRepository, RESERVATION_REPOSITORY } from '../../domain/repositories/reservation.repository.interface';
 import { ICourtRepository, COURT_REPOSITORY } from '../../../courts/domain/repositories/court.repository.interface';
@@ -9,7 +11,7 @@ export interface SlotAvailabilityDto {
   startTime: string;
   endTime: string;
   isAvailable: boolean;
-  status: 'AVAILABLE' | 'OCCUPIED' | 'TEMPORAL_HOLD';
+  status: 'AVAILABLE' | 'OCCUPIED' | 'TEMPORAL_HOLD' | 'BLOCKED';
 }
 
 export interface CourtAvailabilityOutputDto {
@@ -29,6 +31,7 @@ export interface CourtAvailabilityOutputDto {
 @Injectable()
 export class GetCourtAvailabilityUseCase {
   constructor(
+    @Inject(COURT_INCIDENT_REPOSITORY) private readonly incidents: ICourtIncidentRepository,
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
     @Inject(COURT_REPOSITORY)
@@ -77,6 +80,7 @@ export class GetCourtAvailabilityUseCase {
       };
     }
 
+    const incidents = await this.incidents.findByCourt(courtId);
     // Obtener reservas activas en la fecha
     const reservations = await this.reservationRepository.findByCourtAndDate(courtId, date);
     const activeReservations = reservations.filter((r) => {
@@ -96,6 +100,10 @@ export class GetCourtAvailabilityUseCase {
       const slotEnd = this.minutesToTime(current + 60);
       const timeSlot = new TimeSlot(slotStart, slotEnd);
 
+      if (overlapsIncident(incidents, date, slotStart, slotEnd)) {
+        slots.push({ startTime: slotStart, endTime: slotEnd, isAvailable: false, status: 'BLOCKED' });
+        continue;
+      }
       const conflict = activeReservations.find((res) =>
         timeSlot.overlapsWith(res.startTime, res.endTime),
       );
