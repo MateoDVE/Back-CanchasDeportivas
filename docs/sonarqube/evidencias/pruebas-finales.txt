@@ -1,0 +1,30 @@
+
+> back-canchas-deportivas@0.0.1 test
+> jest --runInBand --json --outputFile=docs/sonarqube/evidencias/pruebas-finales.json
+
+FAIL src/modules/reservations/domain/reservation-domain.spec.ts
+  ● Reservation Domain & Business Rules (RN-01 to RN-05) › Reservation Entity (RN-03, RN-04, RN-05 & HU-CLI-11..14) › debe calcular exactamente el 25% de anticipo y 75% de saldo pendiente (RN-04 & HU-CLI-14)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 150
+    Received: 0
+
+      60 |       expect(reservation.advanceRequired).toBe(50.0);
+      61 |       // Saldo pendiente = 200 - 50 = 150
+    > 62 |       expect(reservation.pendingBalance).toBe(150.0);
+         |                                          ^
+      63 |     });
+      64 |
+      65 |     it('debe establecer el bloqueo temporal de 5 minutos exactos (RN-03 & HU-CLI-12)', () => {
+
+      at Object.<anonymous> (modules/reservations/domain/reservation-domain.spec.ts:62:42)
+
+ts-jest[config] (WARN) message TS151002: Using hybrid module kind (Node16/18/Next) is only supported in "isolatedModules: true". Please set "isolatedModules: true" in your tsconfig.json. To disable this message, you can set "diagnostics.ignoreCodes" to include 151002 in your ts-jest config. See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/options/diagnostics
+
+Test Suites: 1 failed, 8 passed, 9 total
+Tests:       1 failed, 57 passed, 58 total
+Snapshots:   0 total
+Time:        5.612 s, estimated 27 s
+Ran all test suites.
+Test results written to: docs\sonarqube\evidencias\pruebas-finales.json

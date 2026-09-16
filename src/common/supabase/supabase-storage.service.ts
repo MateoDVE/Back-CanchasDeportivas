@@ -38,53 +38,11 @@ export class SupabaseStorageService {
       return `https://storage.mock.local/${bucket}/${folder}/${customFilename || Date.now()}.png`;
     }
 
-    let buffer: Buffer;
-    let contentType = 'image/png';
-    let extension = 'png';
-
-    // Verificar si es un Data URL: data:image/jpeg;base64,/9j/4AAQSk...
-    const dataUrlMatch = trimmedData.match(/^data:([a-zA-Z0-9\+\-\.\/]+);base64,(.+)$/s);
-
-    if (dataUrlMatch && dataUrlMatch.length === 3) {
-      contentType = dataUrlMatch[1];
-      const base64Body = dataUrlMatch[2];
-      buffer = Buffer.from(base64Body, 'base64');
-
-      const mimeSubtype = contentType.split('/')[1];
-      if (mimeSubtype) {
-        extension = mimeSubtype === 'jpeg' ? 'jpg' : mimeSubtype.replace(/\+xml$/, '').split(';')[0];
-      }
-    } else {
-      // Base64 plano sin prefijo data:
-      buffer = Buffer.from(trimmedData, 'base64');
-      // Detección simple por magic bytes en buffer
-      if (buffer.length >= 4) {
-        if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-          contentType = 'image/jpeg';
-          extension = 'jpg';
-        } else if (
-          buffer[0] === 0x89 &&
-          buffer[1] === 0x50 &&
-          buffer[2] === 0x4e &&
-          buffer[3] === 0x47
-        ) {
-          contentType = 'image/png';
-          extension = 'png';
-        } else if (
-          buffer[0] === 0x52 &&
-          buffer[1] === 0x49 &&
-          buffer[2] === 0x46 &&
-          buffer[3] === 0x46
-        ) {
-          contentType = 'image/webp';
-          extension = 'webp';
-        }
-      }
-    }
+    const { buffer, contentType, extension } = this.decodeFile(trimmedData);
 
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     const filename = customFilename || `receipt-${uniqueId}.${extension}`;
-    const cleanFolder = folder.replace(/^\/+|\/+$/g, '');
+    const cleanFolder = this.trimFolderSlashes(folder);
     const storagePath = `${cleanFolder}/${filename}`;
 
     this.logger.log(
@@ -113,5 +71,54 @@ export class SupabaseStorageService {
 
     this.logger.log(`Comprobante almacenado con éxito: ${publicUrlData.publicUrl}`);
     return publicUrlData.publicUrl;
+  }
+
+  private trimFolderSlashes(folder: string): string {
+    let start = 0;
+    let end = folder.length;
+    while (start < end && folder[start] === '/') start++;
+    while (end > start && folder[end - 1] === '/') end--;
+    return folder.slice(start, end);
+  }
+
+  private decodeFile(fileData: string): {
+    buffer: Buffer;
+    contentType: string;
+    extension: string;
+  } {
+    const dataUrlMatch = fileData.match(/^data:([a-zA-Z0-9\+\-\.\/]+);base64,(.+)$/s);
+    if (dataUrlMatch && dataUrlMatch.length === 3) {
+      const contentType = dataUrlMatch[1];
+      return {
+        buffer: Buffer.from(dataUrlMatch[2], 'base64'),
+        contentType,
+        extension: this.extensionFromMime(contentType),
+      };
+    }
+
+    const buffer = Buffer.from(fileData, 'base64');
+    return { buffer, ...this.detectImageType(buffer) };
+  }
+
+  private extensionFromMime(contentType: string): string {
+    const subtype = contentType.split('/')[1];
+    if (!subtype) return 'png';
+    return subtype === 'jpeg' ? 'jpg' : subtype.replace(/\+xml$/, '').split(';')[0];
+  }
+
+  private detectImageType(buffer: Buffer): { contentType: string; extension: string } {
+    // Se conserva la detección histórica, incluido el mínimo de cuatro bytes.
+    const signatures = [
+      { bytes: [0xff, 0xd8, 0xff], contentType: 'image/jpeg', extension: 'jpg' },
+      { bytes: [0x89, 0x50, 0x4e, 0x47], contentType: 'image/png', extension: 'png' },
+      { bytes: [0x52, 0x49, 0x46, 0x46], contentType: 'image/webp', extension: 'webp' },
+    ];
+    if (buffer.length >= 4) {
+      const match = signatures.find(({ bytes }) =>
+        bytes.every((byte, index) => buffer[index] === byte),
+      );
+      if (match) return { contentType: match.contentType, extension: match.extension };
+    }
+    return { contentType: 'image/png', extension: 'png' };
   }
 }
