@@ -20,4 +20,5 @@ Verificación: 18 pruebas del contrato pasan antes de la refactorización. Cubre
 Comando: `npm test -- --runInBand src/common/supabase/supabase-storage.service.spec.ts`.
 
 Referencia de la API conservada: [subidas de Storage](https://supabase.com/docs/guides/storage/uploads/standard-uploads).
-`nResultado posterior local: 18/18 pruebas aprobadas y npm run build correcto.
+
+Resultado posterior local: 18/18 pruebas aprobadas y npm run build correcto.
