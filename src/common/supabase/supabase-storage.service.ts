@@ -42,7 +42,7 @@ export class SupabaseStorageService {
 
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     const filename = customFilename || `receipt-${uniqueId}.${extension}`;
-    const cleanFolder = folder.replace(/^\/+|\/+$/g, '');
+    const cleanFolder = this.trimFolderSlashes(folder);
     const storagePath = `${cleanFolder}/${filename}`;
 
     this.logger.log(
@@ -71,6 +71,14 @@ export class SupabaseStorageService {
 
     this.logger.log(`Comprobante almacenado con éxito: ${publicUrlData.publicUrl}`);
     return publicUrlData.publicUrl;
+  }
+
+  private trimFolderSlashes(folder: string): string {
+    let start = 0;
+    let end = folder.length;
+    while (start < end && folder[start] === '/') start++;
+    while (end > start && folder[end - 1] === '/') end--;
+    return folder.slice(start, end);
   }
 
   private decodeFile(fileData: string): {

@@ -83,6 +83,26 @@ describe('SupabaseStorageService: contrato de almacenamiento', () => {
     });
   });
 
+  it.each([
+    ['', '/custom.png'],
+    ['////', '/custom.png'],
+    ['/a/b/', 'a/b/custom.png'],
+    ['a//b', 'a//b/custom.png'],
+    ['a/b', 'a/b/custom.png'],
+    [' /a/ ', ' /a/ /custom.png'],
+  ])('normaliza solo las barras de los extremos de %j', async (folder, path) => {
+    await service.uploadFile('receipts', folder, 'YQ==', 'custom.png');
+    expect(upload).toHaveBeenCalledWith(path, Buffer.from('a'), {
+      contentType: 'image/png', upsert: true,
+    });
+  });
+
+  it('maneja una secuencia larga de barras interiores sin alterar su contenido', async () => {
+    const folder = `a${'/'.repeat(100_000)}b`;
+    await service.uploadFile('receipts', folder, 'YQ==', 'custom.png');
+    expect(upload.mock.calls[0][0]).toBe(`${folder}/custom.png`);
+  });
+
   it('propaga un error de subida sin pedir la URL pública', async () => {
     upload.mockResolvedValue({ error: { message: 'denegado' } });
     await expect(service.uploadFile('receipts', 'folder', 'YQ==')).rejects.toThrow(
