@@ -4,7 +4,7 @@ import { CashShift } from '../../domain/entities/cash-shift.entity';
 
 @Injectable()
 export class InMemoryCashShiftRepository implements ICashShiftRepository {
-  private shifts: Map<number, CashShift> = new Map();
+  private readonly shifts: Map<number, CashShift> = new Map();
   private nextId = 1;
 
   async findById(id: number): Promise<CashShift | null> {
