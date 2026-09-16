@@ -4,7 +4,7 @@ import { Court, CourtType } from '../../domain/entities/court.entity';
 
 @Injectable()
 export class InMemoryCourtRepository implements ICourtRepository {
-  private courts: Map<number, Court> = new Map();
+  private readonly courts: Map<number, Court> = new Map();
   private nextId = 1;
 
   async findById(id: number): Promise<Court | null> {
