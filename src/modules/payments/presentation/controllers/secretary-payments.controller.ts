@@ -9,12 +9,21 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { GetPendingPaymentsUseCase, PendingPaymentItemDto } from '../../application/use-cases/get-pending-payments.use-case';
-import { ValidateAdvancePaymentUseCase, ValidateAdvancePaymentOutputDto } from '../../application/use-cases/validate-advance-payment.use-case';
+import {
+  GetPendingPaymentsUseCase,
+  PendingPaymentItemDto,
+} from '../../application/use-cases/get-pending-payments.use-case';
+import {
+  ValidateAdvancePaymentUseCase,
+  ValidateAdvancePaymentOutputDto,
+} from '../../application/use-cases/validate-advance-payment.use-case';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
-import { CurrentUser, AuthenticatedUser } from '../../../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  AuthenticatedUser,
+} from '../../../../common/decorators/current-user.decorator';
 
 import { RejectAdvancePaymentUseCase } from '../../application/use-cases/reject-advance-payment.use-case';
 import { RegisterFinalPaymentUseCase } from '../../application/use-cases/register-final-payment.use-case';
@@ -107,7 +116,7 @@ export class SecretaryPaymentsController {
       reservationId,
       amount: dto.amount,
       reason: dto.reason,
-      authorizedBy: dto.authorizedBy,
+      authorizedBy: user.id,
       secretaryId: user.id,
     });
   }

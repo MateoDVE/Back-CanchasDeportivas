@@ -1,3 +1,4 @@
+import { Reservation } from '../../../reservations/domain/entities/reservation.entity';
 import { Injectable } from '@nestjs/common';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { Payment } from '../../domain/entities/payment.entity';
@@ -6,6 +7,53 @@ import { Payment } from '../../domain/entities/payment.entity';
 export class InMemoryPaymentRepository implements IPaymentRepository {
   private payments: Map<number, Payment> = new Map();
   private nextId = 1;
+
+  async submitReceipt(
+    reservation: Reservation,
+    url: string,
+    actorId: string,
+  ): Promise<Payment> {
+    const existing = [...this.payments.values()].find(
+      (p) =>
+        p.reservationId === reservation.id &&
+        p.status === 'PENDING' &&
+        p.paymentType === 'ANTICIPO',
+    );
+    if (existing) {
+      existing.receiptImageUrl = url;
+      return existing;
+    }
+    return this.save(
+      new Payment(
+        0,
+        reservation.id,
+        reservation.advanceRequired,
+        'ANTICIPO',
+        'QR',
+        url,
+        'PENDING',
+      ),
+    );
+  }
+
+  async processAdvance(
+    payment: Payment,
+    reservation: Reservation,
+  ): Promise<void> {
+    this.payments.set(payment.id, payment);
+    reservation.applyPaidAmount(
+      (await this.findByReservationId(reservation.id)).reduce(
+        (sum, p) =>
+          sum +
+          (p.status === 'VALIDATED'
+            ? p.amount
+            : p.status === 'REFUNDED'
+              ? -p.amount
+              : 0),
+        0,
+      ),
+    );
+  }
 
   async findById(id: number): Promise<Payment | null> {
     return this.payments.get(id) || null;
@@ -30,6 +78,10 @@ export class InMemoryPaymentRepository implements IPaymentRepository {
       payment.handledBy,
       payment.rejectionReason,
       payment.createdAt || new Date(),
+      payment.processedAt ?? (payment.status === 'PENDING' ? null : new Date()),
+      payment.authorizedBy,
+      payment.refundReason,
+      payment.originalReservationId,
     );
     this.payments.set(id, entity);
     return entity;
@@ -51,16 +103,26 @@ export class InMemoryPaymentRepository implements IPaymentRepository {
     );
   }
 
-  async findByHandlerAndDate(handledBy: string, date: string): Promise<Payment[]> {
+  async findByHandlerAndDate(
+    handledBy: string,
+    date: string,
+  ): Promise<Payment[]> {
     return Array.from(this.payments.values()).filter((p) => {
-      const pDate = p.createdAt.toISOString().split('T')[0];
+      const pDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/La_Paz',
+      }).format(p.processedAt ?? p.createdAt);
       return p.handledBy === handledBy && pDate === date;
     });
   }
 
-  async findByDateRange(startDate: string, endDate: string): Promise<Payment[]> {
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<Payment[]> {
     return Array.from(this.payments.values()).filter((p) => {
-      const pDate = p.createdAt.toISOString().split('T')[0];
+      const pDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/La_Paz',
+      }).format(p.processedAt ?? p.createdAt);
       return pDate >= startDate && pDate <= endDate;
     });
   }

@@ -34,21 +34,38 @@ export class RegisterRefundExceptionUseCase {
   ) {}
 
   async execute(input: RegisterRefundExceptionInput) {
-    const reservation = await this.reservationRepository.findById(input.reservationId);
+    const reservation = await this.reservationRepository.findById(
+      input.reservationId,
+    );
     if (!reservation) {
-      throw new EntityNotFoundException(`Reserva ${input.reservationId} no encontrada.`);
+      throw new EntityNotFoundException(
+        `Reserva ${input.reservationId} no encontrada.`,
+      );
     }
 
     if (!input.reason || input.reason.trim() === '') {
-      throw new ValidationException('El motivo de la excepción de devolución es obligatorio.');
+      throw new ValidationException(
+        'El motivo de la excepción de devolución es obligatorio.',
+      );
     }
 
-    if (!input.authorizedBy || input.authorizedBy.trim() === '') {
-      throw new ValidationException('El responsable que autoriza la excepción es obligatorio.');
-    }
-
-    const auditReason = `Excepción de devolución autorizada por: ${input.authorizedBy}. Motivo: ${input.reason}`;
-
+    const payments = await this.paymentRepository.findByReservationId(
+      reservation.id,
+    );
+    const net = payments.reduce(
+      (sum, p) =>
+        sum +
+        (p.status === 'VALIDATED'
+          ? p.amount
+          : p.status === 'REFUNDED'
+            ? -p.amount
+            : 0),
+      0,
+    );
+    if (input.amount > net)
+      throw new ValidationException(
+        'La devolución excede el importe pagado disponible.',
+      );
     const refundPayment = new Payment(
       0,
       reservation.id,
@@ -58,21 +75,20 @@ export class RegisterRefundExceptionUseCase {
       null,
       'REFUNDED',
       input.secretaryId,
-      auditReason,
+      null,
       new Date(),
+      new Date(),
+      input.secretaryId,
+      input.reason.trim(),
     );
 
     const savedPayment = await this.paymentRepository.save(refundPayment);
-
-    // Actualizar historial en la reserva
-    reservation.cancellationReason = `${reservation.cancellationReason || ''} [DEVOLUCION: ${input.amount} Bs - ${auditReason}]`.trim();
-    await this.reservationRepository.update(reservation);
 
     return {
       payment: savedPayment,
       reservationId: reservation.id,
       refundedAmount: input.amount,
-      authorizedBy: input.authorizedBy,
+      authorizedBy: input.secretaryId,
       handledBy: input.secretaryId,
     };
   }

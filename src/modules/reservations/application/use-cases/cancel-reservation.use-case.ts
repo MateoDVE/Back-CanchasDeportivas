@@ -1,6 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { IReservationRepository, RESERVATION_REPOSITORY } from '../../domain/repositories/reservation.repository.interface';
-import { EntityNotFoundException, ValidationException } from '../../../../common/domain/exceptions/domain.exception';
+import {
+  IReservationRepository,
+  RESERVATION_REPOSITORY,
+} from '../../domain/repositories/reservation.repository.interface';
+import {
+  EntityNotFoundException,
+  ValidationException,
+} from '../../../../common/domain/exceptions/domain.exception';
 
 export interface CancelReservationInput {
   reservationId: string;
@@ -29,12 +35,22 @@ export class CancelReservationUseCase {
     private readonly reservationRepository: IReservationRepository,
   ) {}
 
-  async execute(input: CancelReservationInput): Promise<CancelReservationOutputDto> {
-    const reason = (input.reason && input.reason.trim()) || (input.isStaff ? 'Cancelado por administración' : 'Cancelado por cliente');
+  async execute(
+    input: CancelReservationInput,
+  ): Promise<CancelReservationOutputDto> {
+    const reason =
+      (input.reason && input.reason.trim()) ||
+      (input.isStaff
+        ? 'Cancelado por administración'
+        : 'Cancelado por cliente');
 
-    const reservation = await this.reservationRepository.findById(input.reservationId);
+    const reservation = await this.reservationRepository.findById(
+      input.reservationId,
+    );
     if (!reservation) {
-      throw new EntityNotFoundException(`La reserva con ID ${input.reservationId} no existe.`);
+      throw new EntityNotFoundException(
+        `La reserva con ID ${input.reservationId} no existe.`,
+      );
     }
 
     if (reservation.status === 'CANCELLED') {
@@ -43,18 +59,25 @@ export class CancelReservationUseCase {
 
     // Cliente solo cancela las suyas
     if (!input.isStaff && reservation.clientId !== input.cancelledByUserId) {
-      throw new ValidationException('No tiene autorización para cancelar esta reserva.');
+      throw new ValidationException(
+        'No tiene autorización para cancelar esta reserva.',
+      );
     }
 
     reservation.cancel(reason);
-    await this.reservationRepository.update(reservation);
+    await this.reservationRepository.update(
+      reservation,
+      input.cancelledByUserId,
+      reason,
+    );
 
     return {
       reservationId: reservation.id,
       status: reservation.status,
       cancellationReason: reason,
       advanceRefunded: false, // RN-08: El anticipo no es reembolsable por defecto
-      message: 'Reserva cancelada con éxito. Horario liberado para nuevos clientes.',
+      message:
+        'Reserva cancelada con éxito. Horario liberado para nuevos clientes.',
     };
   }
 }

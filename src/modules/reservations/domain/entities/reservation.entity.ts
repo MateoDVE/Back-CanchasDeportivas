@@ -1,4 +1,7 @@
-import { DomainException, ValidationException } from '../../../../common/domain/exceptions/domain.exception';
+import {
+  DomainException,
+  ValidationException,
+} from '../../../../common/domain/exceptions/domain.exception';
 import { TimeSlot } from '../value-objects/time-slot.vo';
 
 export type ReservationStatus =
@@ -12,14 +15,21 @@ export type ReservationStatus =
   | 'COMPLETED';
 
 export class Reservation {
+  public readonly persistedStatus: ReservationStatus;
+  private paidAmount: number | null = null;
+
+  public applyPaidAmount(amount: number): void {
+    this.paidAmount = Number(amount.toFixed(2));
+    this.isFinalPaymentPaid = this.paidAmount >= this.totalPrice;
+  }
   constructor(
     public readonly id: string,
     public readonly clientId: string,
     public readonly courtId: number,
     public readonly reservationDate: string, // YYYY-MM-DD
-    public readonly startTime: string,       // HH:mm
-    public readonly endTime: string,         // HH:mm
-    public readonly pricePerHour: number,    // Precio congelado históricamente
+    public readonly startTime: string, // HH:mm
+    public readonly endTime: string, // HH:mm
+    public readonly pricePerHour: number, // Precio congelado históricamente
     public readonly totalPrice: number,
     public readonly advanceRequired: number, // Exactamente 25%
     private _status: ReservationStatus,
@@ -31,7 +41,9 @@ export class Reservation {
     public isEntryAuthorized: boolean = false,
     public isFinalPaymentPaid: boolean = false,
     public readonly origin: string = 'WEB',
-  ) {}
+  ) {
+    this.persistedStatus = _status;
+  }
 
   public static createTemporal(props: {
     id: string;
@@ -43,7 +55,9 @@ export class Reservation {
     createdBy: string;
   }): Reservation {
     if (props.pricePerHour <= 0) {
-      throw new ValidationException('El precio de la cancha debe ser mayor a 0.');
+      throw new ValidationException(
+        'El precio de la cancha debe ser mayor a 0.',
+      );
     }
 
     const totalPrice = Number(
@@ -87,7 +101,9 @@ export class Reservation {
     status?: 'CONFIRMED' | 'PENDING_VALIDATION';
   }): Reservation {
     if (props.pricePerHour <= 0) {
-      throw new ValidationException('El precio de la cancha debe ser mayor a 0.');
+      throw new ValidationException(
+        'El precio de la cancha debe ser mayor a 0.',
+      );
     }
 
     const totalPrice = Number(
@@ -128,14 +144,18 @@ export class Reservation {
 
   get pendingBalance(): number {
     if (
-      this.isFinalPaymentPaid ||
-      this._status === 'CANCELLED' ||
-      this._status === 'EXPIRED' ||
-      this._status === 'TEMPORAL'
-    ) {
+      ['CANCELLED', 'EXPIRED', 'REPROGRAMMED', 'NO_SHOW'].includes(this._status)
+    )
       return 0;
-    }
-    return Number((this.totalPrice - this.advanceRequired).toFixed(2));
+    if (this.paidAmount !== null)
+      return Math.max(
+        0,
+        Number((this.totalPrice - this.paidAmount).toFixed(2)),
+      );
+    // Cotización del saldo posterior al anticipo; el ingreso siempre usa pagos reales.
+    return this.isFinalPaymentPaid
+      ? 0
+      : Number((this.totalPrice - this.advanceRequired).toFixed(2));
   }
 
   public isExpired(): boolean {
@@ -145,7 +165,7 @@ export class Reservation {
     if (this._status !== 'TEMPORAL' || !this._expiresAt) {
       return false;
     }
-    return new Date() > this._expiresAt;
+    return new Date() >= this._expiresAt;
   }
 
   public secondsRemaining(): number {

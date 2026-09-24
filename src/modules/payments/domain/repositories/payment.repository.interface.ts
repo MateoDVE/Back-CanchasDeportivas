@@ -1,3 +1,4 @@
+import { Reservation } from '../../../reservations/domain/entities/reservation.entity';
 import { Payment } from '../entities/payment.entity';
 
 export const PAYMENT_REPOSITORY = 'IPaymentRepository';
@@ -7,6 +8,12 @@ export interface IPaymentRepository {
   findByReservationId(reservationId: string): Promise<Payment[]>;
   save(payment: Omit<Payment, 'id'>): Promise<Payment>;
   update(payment: Payment): Promise<void>;
+  submitReceipt(
+    reservation: Reservation,
+    url: string,
+    actorId: string,
+  ): Promise<Payment>;
+  processAdvance(payment: Payment, reservation: Reservation): Promise<void>;
   findPendingPayments(): Promise<Payment[]>;
   findAll(): Promise<Payment[]>;
   findByHandlerAndDate(handledBy: string, date: string): Promise<Payment[]>;

@@ -1,10 +1,25 @@
-import { ICourtIncidentRepository, COURT_INCIDENT_REPOSITORY } from '../../../courts/domain/repositories/court-incident.repository.interface';
+import {
+  ICourtIncidentRepository,
+  COURT_INCIDENT_REPOSITORY,
+} from '../../../courts/domain/repositories/court-incident.repository.interface';
 import { overlapsIncident } from '../../../courts/domain/entities/incident-overlap';
 import { Injectable, Inject } from '@nestjs/common';
-import { IReservationRepository, RESERVATION_REPOSITORY } from '../../domain/repositories/reservation.repository.interface';
-import { ICourtRepository, COURT_REPOSITORY } from '../../../courts/domain/repositories/court.repository.interface';
-import { IScheduleRepository, SCHEDULE_REPOSITORY } from '../../../schedules/domain/repositories/schedule.repository.interface';
-import { EntityNotFoundException, ValidationException } from '../../../../common/domain/exceptions/domain.exception';
+import {
+  IReservationRepository,
+  RESERVATION_REPOSITORY,
+} from '../../domain/repositories/reservation.repository.interface';
+import {
+  ICourtRepository,
+  COURT_REPOSITORY,
+} from '../../../courts/domain/repositories/court.repository.interface';
+import {
+  IScheduleRepository,
+  SCHEDULE_REPOSITORY,
+} from '../../../schedules/domain/repositories/schedule.repository.interface';
+import {
+  EntityNotFoundException,
+  ValidationException,
+} from '../../../../common/domain/exceptions/domain.exception';
 import { TimeSlot } from '../../domain/value-objects/time-slot.vo';
 
 export interface SlotAvailabilityDto {
@@ -31,7 +46,8 @@ export interface CourtAvailabilityOutputDto {
 @Injectable()
 export class GetCourtAvailabilityUseCase {
   constructor(
-    @Inject(COURT_INCIDENT_REPOSITORY) private readonly incidents: ICourtIncidentRepository,
+    @Inject(COURT_INCIDENT_REPOSITORY)
+    private readonly incidents: ICourtIncidentRepository,
     @Inject(RESERVATION_REPOSITORY)
     private readonly reservationRepository: IReservationRepository,
     @Inject(COURT_REPOSITORY)
@@ -40,7 +56,10 @@ export class GetCourtAvailabilityUseCase {
     private readonly scheduleRepository: IScheduleRepository,
   ) {}
 
-  async execute(courtId: number, date: string): Promise<CourtAvailabilityOutputDto> {
+  async execute(
+    courtId: number,
+    date: string,
+  ): Promise<CourtAvailabilityOutputDto> {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
       throw new ValidationException('El formato de fecha debe ser YYYY-MM-DD.');
@@ -48,7 +67,9 @@ export class GetCourtAvailabilityUseCase {
 
     const court = await this.courtRepository.findById(courtId);
     if (!court || !court.isActive) {
-      throw new EntityNotFoundException(`La cancha con ID ${courtId} no está disponible.`);
+      throw new EntityNotFoundException(
+        `La cancha con ID ${courtId} no está disponible.`,
+      );
     }
 
     // Calcular día de la semana (1 = Lunes, ..., 7 = Domingo)
@@ -59,9 +80,15 @@ export class GetCourtAvailabilityUseCase {
     const dayOfWeek = jsDay === 0 ? 7 : jsDay;
 
     // Buscar horario específico o regular
-    let schedule = await this.scheduleRepository.findByCourtAndDate(courtId, date);
+    let schedule = await this.scheduleRepository.findByCourtAndDate(
+      courtId,
+      date,
+    );
     if (!schedule) {
-      schedule = await this.scheduleRepository.findByCourtAndDay(courtId, dayOfWeek);
+      schedule = await this.scheduleRepository.findByCourtAndDay(
+        courtId,
+        dayOfWeek,
+      );
     }
     if (!schedule && dayOfWeek === 7) {
       schedule = await this.scheduleRepository.findByCourtAndDay(courtId, 0);
@@ -82,9 +109,15 @@ export class GetCourtAvailabilityUseCase {
 
     const incidents = await this.incidents.findByCourt(courtId);
     // Obtener reservas activas en la fecha
-    const reservations = await this.reservationRepository.findByCourtAndDate(courtId, date);
+    const reservations = await this.reservationRepository.findByCourtAndDate(
+      courtId,
+      date,
+    );
     const activeReservations = reservations.filter((r) => {
-      if (['CANCELLED', 'EXPIRED', 'NO_SHOW'].includes(r.status)) return false;
+      if (
+        ['CANCELLED', 'EXPIRED', 'NO_SHOW', 'REPROGRAMMED'].includes(r.status)
+      )
+        return false;
       if (r.status === 'TEMPORAL' && r.isExpired()) return false;
       return true;
     });
@@ -95,13 +128,22 @@ export class GetCourtAvailabilityUseCase {
     const closeMinutes = this.timeToMinutes(schedule.closeTime);
 
     // Iteramos cada 60 minutos
-    for (let current = openMinutes; current + 60 <= closeMinutes; current += 60) {
+    for (
+      let current = openMinutes;
+      current + 60 <= closeMinutes;
+      current += 60
+    ) {
       const slotStart = this.minutesToTime(current);
       const slotEnd = this.minutesToTime(current + 60);
       const timeSlot = new TimeSlot(slotStart, slotEnd);
 
       if (overlapsIncident(incidents, date, slotStart, slotEnd)) {
-        slots.push({ startTime: slotStart, endTime: slotEnd, isAvailable: false, status: 'BLOCKED' });
+        slots.push({
+          startTime: slotStart,
+          endTime: slotEnd,
+          isAvailable: false,
+          status: 'BLOCKED',
+        });
         continue;
       }
       const conflict = activeReservations.find((res) =>

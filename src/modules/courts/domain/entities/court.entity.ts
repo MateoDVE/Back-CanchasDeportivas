@@ -1,6 +1,7 @@
 import { ValidationException } from '../../../../common/domain/exceptions/domain.exception';
 
-export type CourtType = 'Futsal' | 'Wally' | 'Racket' | 'Padel';
+// Código validado por FK a court_types en persistencia.
+export type CourtType = string;
 
 export class Court {
   constructor(
@@ -26,7 +27,9 @@ export class Court {
 
   private validatePrice(price: number): void {
     if (price <= 0 || isNaN(price)) {
-      throw new ValidationException('El precio por hora debe ser un número mayor a cero.');
+      throw new ValidationException(
+        'El precio por hora debe ser un número mayor a cero.',
+      );
     }
   }
 

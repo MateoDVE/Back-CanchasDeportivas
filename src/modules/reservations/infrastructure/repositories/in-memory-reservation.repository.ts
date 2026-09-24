@@ -1,10 +1,86 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
+import {
+  IPaymentRepository,
+  PAYMENT_REPOSITORY,
+} from '../../../payments/domain/repositories/payment.repository.interface';
+import {
+  ConflictException,
+  CourtSlotOccupiedException,
+} from '../../../../common/domain/exceptions/domain.exception';
 import { IReservationRepository } from '../../domain/repositories/reservation.repository.interface';
-import { Reservation, ReservationStatus } from '../../domain/entities/reservation.entity';
+import {
+  Reservation,
+  ReservationStatus,
+} from '../../domain/entities/reservation.entity';
 
 @Injectable()
 export class InMemoryReservationRepository implements IReservationRepository {
   private reservations: Map<string, Reservation> = new Map();
+
+  constructor(
+    @Optional()
+    @Inject(PAYMENT_REPOSITORY)
+    private readonly payments?: IPaymentRepository,
+  ) {}
+
+  private assertAvailable(reservation: Reservation, excludeId?: string): void {
+    for (const other of this.reservations.values()) {
+      if (
+        other.id === reservation.id ||
+        other.id === excludeId ||
+        ['CANCELLED', 'EXPIRED', 'NO_SHOW', 'REPROGRAMMED'].includes(
+          other.status,
+        ) ||
+        other.isExpired()
+      )
+        continue;
+      if (
+        other.courtId === reservation.courtId &&
+        other.reservationDate === reservation.reservationDate &&
+        other.startTime < reservation.endTime &&
+        other.endTime > reservation.startTime
+      )
+        throw new CourtSlotOccupiedException();
+    }
+  }
+
+  async reschedule(
+    reservation: Reservation,
+    actorId: string,
+    reason?: string,
+  ): Promise<void> {
+    const payments =
+      (await this.payments?.findByReservationId(
+        reservation.parentReservationId!,
+      )) ?? [];
+    const old = this.reservations.get(reservation.parentReservationId!);
+    if (!old || old.status !== 'CONFIRMED')
+      throw new ConflictException('Reserva no reprogramable.');
+    if (payments.some((p) => p.status === 'PENDING'))
+      throw new ConflictException('Existen pagos pendientes.');
+    const net = payments.reduce(
+      (sum, p) =>
+        sum +
+        (p.status === 'VALIDATED'
+          ? p.amount
+          : p.status === 'REFUNDED'
+            ? -p.amount
+            : 0),
+      0,
+    );
+    if (net > reservation.totalPrice)
+      throw new ConflictException(
+        'Devuelve el excedente antes de reprogramar.',
+      );
+    this.assertAvailable(reservation, old.id);
+    // Después de validar, las mutaciones en memoria no contienen puntos de suspensión.
+    old.markReprogrammed();
+    for (const payment of payments)
+      if (['VALIDATED', 'REFUNDED'].includes(payment.status))
+        payment.reservationId = reservation.id;
+    reservation.applyPaidAmount(net);
+    this.reservations.set(reservation.id, reservation);
+  }
 
   async findById(id: string): Promise<Reservation | null> {
     const r = this.reservations.get(id);
@@ -17,6 +93,7 @@ export class InMemoryReservationRepository implements IReservationRepository {
   }
 
   async save(reservation: Reservation): Promise<void> {
+    this.assertAvailable(reservation);
     this.reservations.set(reservation.id, reservation);
   }
 
@@ -47,7 +124,10 @@ export class InMemoryReservationRepository implements IReservationRepository {
       if (r.courtId !== courtId || r.reservationDate !== date) continue;
 
       // Excluir canceladas, expiradas o no-show
-      if (['CANCELLED', 'EXPIRED', 'NO_SHOW'].includes(r.status)) continue;
+      if (
+        ['CANCELLED', 'EXPIRED', 'NO_SHOW', 'REPROGRAMMED'].includes(r.status)
+      )
+        continue;
 
       // Si es temporal pero ya expiró, marcar como expirada y no considerarla conflicto
       if (r.status === 'TEMPORAL' && r.isExpired()) {
@@ -67,7 +147,10 @@ export class InMemoryReservationRepository implements IReservationRepository {
     return conflicts;
   }
 
-  async findByCourtAndDate(courtId: number, date: string): Promise<Reservation[]> {
+  async findByCourtAndDate(
+    courtId: number,
+    date: string,
+  ): Promise<Reservation[]> {
     const list = Array.from(this.reservations.values());
     return list.filter((r) => {
       if (r.courtId !== courtId || r.reservationDate !== date) return false;
@@ -103,7 +186,10 @@ export class InMemoryReservationRepository implements IReservationRepository {
     );
   }
 
-  async findByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<Reservation[]> {
     return Array.from(this.reservations.values()).filter(
       (r) => r.reservationDate >= startDate && r.reservationDate <= endDate,
     );

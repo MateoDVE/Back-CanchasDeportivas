@@ -1,4 +1,7 @@
-import { DomainException, ValidationException } from '../../../../common/domain/exceptions/domain.exception';
+import {
+  DomainException,
+  ValidationException,
+} from '../../../../common/domain/exceptions/domain.exception';
 
 export type PaymentType = 'ANTICIPO' | 'SALDO_FINAL' | 'DEVOLUCION';
 export type PaymentMethod = 'QR' | 'EFECTIVO';
@@ -7,7 +10,7 @@ export type PaymentStatus = 'PENDING' | 'VALIDATED' | 'REJECTED' | 'REFUNDED';
 export class Payment {
   constructor(
     public id: number,
-    public readonly reservationId: string,
+    public reservationId: string,
     public readonly amount: number,
     public readonly paymentType: PaymentType,
     public readonly paymentMethod: PaymentMethod,
@@ -16,8 +19,12 @@ export class Payment {
     private _handledBy: string | null = null,
     private _rejectionReason: string | null = null,
     public readonly createdAt: Date = new Date(),
+    public processedAt: Date | null = null,
+    public authorizedBy: string | null = null,
+    public refundReason: string | null = null,
+    public originalReservationId: string = reservationId,
   ) {
-    if (amount <= 0 || isNaN(amount)) {
+    if (amount <= 0 || !Number.isFinite(amount)) {
       throw new ValidationException('El monto de pago debe ser mayor a 0.');
     }
   }
@@ -41,10 +48,13 @@ export class Payment {
       );
     }
     if (!handledByUserId) {
-      throw new ValidationException('Se requiere el identificador de la secretaria responsable.');
+      throw new ValidationException(
+        'Se requiere el identificador de la secretaria responsable.',
+      );
     }
     this._status = 'VALIDATED';
     this._handledBy = handledByUserId;
+    this.processedAt = new Date();
   }
 
   public reject(handledByUserId: string, reason: string): void {
@@ -54,10 +64,13 @@ export class Payment {
       );
     }
     if (!reason || reason.trim() === '') {
-      throw new ValidationException('El motivo de rechazo del comprobante es obligatorio.');
+      throw new ValidationException(
+        'El motivo de rechazo del comprobante es obligatorio.',
+      );
     }
     this._status = 'REJECTED';
     this._handledBy = handledByUserId;
+    this.processedAt = new Date();
     this._rejectionReason = reason.trim();
   }
 }

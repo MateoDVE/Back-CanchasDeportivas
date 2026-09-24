@@ -10,11 +10,17 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { IUserRepository, USER_REPOSITORY } from '../../../users/domain/repositories/user.repository.interface';
+import {
+  IUserRepository,
+  USER_REPOSITORY,
+} from '../../../users/domain/repositories/user.repository.interface';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
-import { CurrentUser, AuthenticatedUser } from '../../../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  AuthenticatedUser,
+} from '../../../../common/decorators/current-user.decorator';
 
 import { GetDailyOperationalBoardUseCase } from '../../application/use-cases/get-daily-operational-board.use-case';
 import { SearchReservationsUseCase } from '../../application/use-cases/search-reservations.use-case';
@@ -59,7 +65,13 @@ export class SecretaryReservationsController {
   async searchClients(@Query('q') query = '') {
     if (query.trim().length < 2) return [];
     const clients = await this.users.searchClients(query.slice(0, 80));
-    return clients.map(({ id, name, ci, phone, email }) => ({ id, name, ci, phone, email }));
+    return clients.map(({ id, name, ci, phone, email }) => ({
+      id,
+      name,
+      ci,
+      phone,
+      email,
+    }));
   }
 
   @Get('operational-board')
@@ -156,8 +168,11 @@ export class SecretaryReservationsController {
    */
   @Post('reservations/:id/authorize-entry')
   @HttpCode(HttpStatus.OK)
-  async authorizeEntry(@Param('id') id: string) {
-    return this.authorizeEntryUseCase.execute(id);
+  async authorizeEntry(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.authorizeEntryUseCase.execute(id, user.id);
   }
 
   /**

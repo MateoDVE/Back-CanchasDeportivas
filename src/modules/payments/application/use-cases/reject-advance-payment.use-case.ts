@@ -7,9 +7,7 @@ import {
   IReservationRepository,
   RESERVATION_REPOSITORY,
 } from '../../../reservations/domain/repositories/reservation.repository.interface';
-import {
-  EntityNotFoundException,
-} from '../../../../common/domain/exceptions/domain.exception';
+import { EntityNotFoundException } from '../../../../common/domain/exceptions/domain.exception';
 
 export interface RejectAdvancePaymentInput {
   paymentId: number;
@@ -32,21 +30,28 @@ export class RejectAdvancePaymentUseCase {
   async execute(input: RejectAdvancePaymentInput) {
     const payment = await this.paymentRepository.findById(input.paymentId);
     if (!payment) {
-      throw new EntityNotFoundException(`El registro de pago con ID ${input.paymentId} no existe.`);
+      throw new EntityNotFoundException(
+        `El registro de pago con ID ${input.paymentId} no existe.`,
+      );
     }
 
-    const reservation = await this.reservationRepository.findById(payment.reservationId);
+    const reservation = await this.reservationRepository.findById(
+      payment.reservationId,
+    );
     if (!reservation) {
-      throw new EntityNotFoundException(`La reserva asociada con ID ${payment.reservationId} no existe.`);
+      throw new EntityNotFoundException(
+        `La reserva asociada con ID ${payment.reservationId} no existe.`,
+      );
     }
 
     // 1. Rechazar el pago
     payment.reject(input.secretaryId, input.reason);
-    await this.paymentRepository.update(payment);
 
     // 2. Cancelar la reserva liberando el horario
-    reservation.cancel(`Comprobante rechazado por ${input.secretaryId}: ${input.reason}`);
-    await this.reservationRepository.update(reservation);
+    reservation.cancel(
+      `Comprobante rechazado por ${input.secretaryId}: ${input.reason}`,
+    );
+    await this.paymentRepository.processAdvance(payment, reservation);
 
     return {
       paymentId: payment.id,

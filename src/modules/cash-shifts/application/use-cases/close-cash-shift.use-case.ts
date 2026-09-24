@@ -33,7 +33,11 @@ export class CloseCashShiftUseCase {
   ) {}
 
   async execute(input: CloseCashShiftInput): Promise<CashShift> {
-    const shiftDate = input.date || new Date().toISOString().split('T')[0];
+    const shiftDate =
+      input.date ||
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'America/La_Paz' }).format(
+        new Date(),
+      );
 
     const existingShift = await this.cashShiftRepository.findBySecretaryAndDate(
       input.secretaryId,
@@ -41,11 +45,15 @@ export class CloseCashShiftUseCase {
     );
 
     if (existingShift && existingShift.isClosed) {
-      throw new DomainException('El turno de caja de esta fecha ya fue cerrado y es inmutable.');
+      throw new DomainException(
+        'El turno de caja de esta fecha ya fue cerrado y es inmutable.',
+      );
     }
 
     if (input.totalDeclaredCash < 0 || isNaN(input.totalDeclaredCash)) {
-      throw new ValidationException('El monto físico declarado debe ser mayor o igual a 0.');
+      throw new ValidationException(
+        'El monto físico declarado debe ser mayor o igual a 0.',
+      );
     }
 
     // Calcular cobros reales registrados en el sistema para esta secretaria hoy
@@ -53,30 +61,34 @@ export class CloseCashShiftUseCase {
       input.secretaryId,
       shiftDate,
     );
-    if (payments.length === 0) {
-      const allDatePayments = await this.paymentRepository.findByDateRange(shiftDate, shiftDate);
-      if (allDatePayments.length > 0) {
-        payments = allDatePayments;
-      }
-    }
-    const validatedPayments = payments.filter((p) => p.status === 'VALIDATED');
+    const validatedPayments = payments.filter(
+      (p) => p.status === 'VALIDATED' || p.status === 'REFUNDED',
+    );
 
     const totalSystemCash = Number(
       validatedPayments
         .filter((p) => p.paymentMethod === 'EFECTIVO')
-        .reduce((sum, p) => sum + p.amount, 0)
+        .reduce(
+          (sum, p) => sum + (p.status === 'REFUNDED' ? -p.amount : p.amount),
+          0,
+        )
         .toFixed(2),
     );
 
     const totalSystemQr = Number(
       validatedPayments
         .filter((p) => p.paymentMethod === 'QR')
-        .reduce((sum, p) => sum + p.amount, 0)
+        .reduce(
+          (sum, p) => sum + (p.status === 'REFUNDED' ? -p.amount : p.amount),
+          0,
+        )
         .toFixed(2),
     );
 
     const totalSystem = Number((totalSystemCash + totalSystemQr).toFixed(2));
-    const difference = Number((input.totalDeclaredCash - totalSystemCash).toFixed(2));
+    const difference = Number(
+      (input.totalDeclaredCash - totalSystemCash).toFixed(2),
+    );
 
     let shift: CashShift;
     if (existingShift) {

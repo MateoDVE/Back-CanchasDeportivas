@@ -53,29 +53,38 @@ export class GetCurrentShiftSummaryUseCase {
     date?: string,
     userRole?: string,
   ): Promise<CurrentShiftSummaryDto> {
-    const shiftDate = date || new Date().toISOString().split('T')[0];
+    const shiftDate =
+      date ||
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'America/La_Paz' }).format(
+        new Date(),
+      );
 
-    let payments = await this.paymentRepository.findByHandlerAndDate(secretaryId, shiftDate);
-    if (userRole === 'ADMIN' || payments.length === 0) {
-      const allDatePayments = await this.paymentRepository.findByDateRange(shiftDate, shiftDate);
-      if (userRole === 'ADMIN' || allDatePayments.length > 0) {
-        payments = allDatePayments;
-      }
-    }
+    let payments = await this.paymentRepository.findByHandlerAndDate(
+      secretaryId,
+      shiftDate,
+    );
 
-    const validatedPayments = payments.filter((p) => p.status === 'VALIDATED');
+    const validatedPayments = payments.filter(
+      (p) => p.status === 'VALIDATED' || p.status === 'REFUNDED',
+    );
 
     const totalSystemCash = Number(
       validatedPayments
         .filter((p) => p.paymentMethod === 'EFECTIVO')
-        .reduce((sum, p) => sum + p.amount, 0)
+        .reduce(
+          (sum, p) => sum + (p.status === 'REFUNDED' ? -p.amount : p.amount),
+          0,
+        )
         .toFixed(2),
     );
 
     const totalSystemQr = Number(
       validatedPayments
         .filter((p) => p.paymentMethod === 'QR')
-        .reduce((sum, p) => sum + p.amount, 0)
+        .reduce(
+          (sum, p) => sum + (p.status === 'REFUNDED' ? -p.amount : p.amount),
+          0,
+        )
         .toFixed(2),
     );
 
@@ -91,7 +100,10 @@ export class GetCurrentShiftSummaryUseCase {
       amount: p.amount,
       paymentType: p.paymentType,
       paymentMethod: p.paymentMethod,
-      createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString(),
+      createdAt:
+        p.createdAt instanceof Date
+          ? p.createdAt.toISOString()
+          : new Date(p.createdAt).toISOString(),
       reservationId: p.reservationId,
     }));
 
