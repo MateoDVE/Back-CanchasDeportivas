@@ -1,13 +1,13 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { GetCourtsByComplexUseCase } from '../../application/use-cases/get-courts-by-complex.use-case';
-import { GetCourtTypesUseCase, CourtTypeDescription } from '../../application/use-cases/get-court-types.use-case';
-import { CalculateReservationCostUseCase, CalculatedCostOutputDto } from '../../application/use-cases/calculate-reservation-cost.use-case';
+import {
+  GetCourtTypesUseCase,
+  CourtTypeDescription,
+} from '../../application/use-cases/get-court-types.use-case';
+import {
+  CalculateReservationCostUseCase,
+  CalculatedCostOutputDto,
+} from '../../application/use-cases/calculate-reservation-cost.use-case';
 import { CourtOutputDto } from '../../application/use-cases/create-court.use-case';
 import { Public } from '../../../../common/decorators/public.decorator';
 
@@ -29,7 +29,9 @@ export class CourtsController {
    */
   @Public()
   @Get('courts')
-  async getAllCourts(@Query('onlyActive') onlyActive?: string): Promise<CourtOutputDto[]> {
+  async getAllCourts(
+    @Query('onlyActive') onlyActive?: string,
+  ): Promise<CourtOutputDto[]> {
     const active = onlyActive !== 'false';
     return this.getAllCourtsUseCase.execute(active);
   }
@@ -39,7 +41,7 @@ export class CourtsController {
    */
   @Public()
   @Get('courts/types')
-  getCourtTypes(): CourtTypeDescription[] {
+  getCourtTypes(): Promise<CourtTypeDescription[]> {
     return this.getCourtTypesUseCase.execute();
   }
 
@@ -48,7 +50,9 @@ export class CourtsController {
    */
   @Public()
   @Get('courts/:id')
-  async getCourtById(@Param('id', ParseIntPipe) id: number): Promise<CourtOutputDto> {
+  async getCourtById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CourtOutputDto> {
     return this.getCourtByIdUseCase.execute(id);
   }
 

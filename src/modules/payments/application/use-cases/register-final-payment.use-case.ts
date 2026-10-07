@@ -21,7 +21,7 @@ export interface RegisterFinalPaymentInput {
 }
 
 /**
- * @reference HU-SEC-15 Registrar pago restante (Simulado)
+ * @reference HU-SEC-15 Registrar pago restante
  * @reference HU-CLI-25 Completar pago antes de ingresar
  */
 @Injectable()
@@ -34,31 +34,51 @@ export class RegisterFinalPaymentUseCase {
   ) {}
 
   async execute(input: RegisterFinalPaymentInput) {
-    const reservation = await this.reservationRepository.findById(input.reservationId);
-    if (!reservation) {
-      throw new EntityNotFoundException(`Reserva ${input.reservationId} no encontrada.`);
-    }
-
-    if (reservation.pendingBalance <= 0) {
-      throw new ValidationException('Esta reserva ya no tiene saldo pendiente por pagar.');
-    }
-
-    const existingPayments = await this.paymentRepository.findByReservationId(input.reservationId);
-    const hasFinalPayment = existingPayments.some(
-      (p) => p.paymentType === 'SALDO_FINAL' && p.status === 'VALIDATED',
+    const reservation = await this.reservationRepository.findById(
+      input.reservationId,
     );
-    if (hasFinalPayment) {
-      throw new ValidationException('Esta reserva ya no tiene saldo pendiente por pagar (el saldo final ya fue registrado).');
+    if (!reservation) {
+      throw new EntityNotFoundException(
+        `Reserva ${input.reservationId} no encontrada.`,
+      );
     }
 
-    if (reservation.status === 'CANCELLED') {
-      throw new ValidationException('No se puede registrar el pago de una reserva cancelada.');
+    if (reservation.status !== 'CONFIRMED')
+      throw new ValidationException(
+        'Solo se cobra el saldo de reservas confirmadas.',
+      );
+    const payments = await this.paymentRepository.findByReservationId(
+      input.reservationId,
+    );
+    const paid = payments.reduce(
+      (sum, p) =>
+        sum +
+        (p.status === 'VALIDATED'
+          ? p.amount
+          : p.status === 'REFUNDED'
+            ? -p.amount
+            : 0),
+      0,
+    );
+    const pending = Number((reservation.totalPrice - paid).toFixed(2));
+    if (
+      pending <= 0 ||
+      !Number.isFinite(input.amount) ||
+      input.amount !== pending
+    ) {
+      throw new ValidationException(
+        'El pago final debe cubrir exactamente el saldo real: ' +
+          pending +
+          ' Bs.',
+      );
     }
 
     const method: PaymentMethod =
-      (input.paymentMethod as string) === 'CASH' ? 'EFECTIVO' : input.paymentMethod;
+      (input.paymentMethod as string) === 'CASH'
+        ? 'EFECTIVO'
+        : input.paymentMethod;
 
-    // Registrar pago final simulado
+    // Registrar pago final validado
     const payment = new Payment(
       0, // Asignado por repo
       reservation.id,
@@ -75,8 +95,7 @@ export class RegisterFinalPaymentUseCase {
     const savedPayment = await this.paymentRepository.save(payment);
 
     // Marcar saldo como pagado en la reserva
-    reservation.markFinalPaymentPaid();
-    await this.reservationRepository.update(reservation);
+    reservation.applyPaidAmount(paid + savedPayment.amount);
 
     return {
       payment: savedPayment,

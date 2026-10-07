@@ -1,5 +1,12 @@
 import { IsArray, ArrayMaxSize, MaxLength, Matches } from 'class-validator';
-import { IsBoolean, IsIn, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { CourtType } from '../../domain/entities/court.entity';
 
@@ -9,7 +16,13 @@ export class UpdateCourtDto {
   @ArrayMaxSize(1)
   @IsString({ each: true })
   @MaxLength(2800000, { each: true })
-  @Matches(/^(https:\/\/[^\s]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2})$/, { each: true, message: 'La portada debe ser una imagen JPG, PNG o WebP válida.' })
+  @Matches(
+    /^(https:\/\/[^\s]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2})$/,
+    {
+      each: true,
+      message: 'La portada debe ser una imagen JPG, PNG o WebP válida.',
+    },
+  )
   images?: string[];
 
   @IsOptional()
@@ -22,13 +35,25 @@ export class UpdateCourtDto {
     if (typeof val === 'string') {
       const lower = val.toLowerCase();
       if (lower === 'padel' || lower === 'pádel') return 'Padel';
-      if (lower.includes('futsal') || lower.includes('futbol') || lower.includes('fútbol')) return 'Futsal';
-      if (lower.includes('wally') || lower.includes('volei') || lower.includes('voley')) return 'Wally';
+      if (
+        lower.includes('futsal') ||
+        lower.includes('futbol') ||
+        lower.includes('fútbol')
+      )
+        return 'Futsal';
+      if (
+        lower.includes('wally') ||
+        lower.includes('volei') ||
+        lower.includes('voley')
+      )
+        return 'Wally';
       if (lower.includes('racket') || lower.includes('raquet')) return 'Racket';
     }
     return val;
   })
-  @IsIn(['Futsal', 'Wally', 'Racket', 'Padel'], { message: 'El tipo debe ser Futsal, Wally, Racket o Padel' })
+  @IsString()
+  @MaxLength(50)
+  @Matches(/\S/, { message: 'Selecciona un tipo de cancha.' })
   courtType?: CourtType;
 
   @IsOptional()

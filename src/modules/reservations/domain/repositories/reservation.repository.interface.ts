@@ -27,6 +27,15 @@ export interface IReservationRepository {
   findAll(): Promise<Reservation[]>;
   findByDateRange(startDate: string, endDate: string): Promise<Reservation[]>;
   search(filters: ReservationSearchFilters): Promise<Reservation[]>;
-  update(reservation: Reservation): Promise<void>;
+  update(
+    reservation: Reservation,
+    actorId?: string,
+    reason?: string,
+  ): Promise<void>;
+  reschedule(
+    reservation: Reservation,
+    actorId: string,
+    reason?: string,
+  ): Promise<void>;
   releaseExpiredReservations(): Promise<number>;
 }

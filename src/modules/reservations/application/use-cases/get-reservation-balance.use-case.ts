@@ -1,6 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { IReservationRepository, RESERVATION_REPOSITORY } from '../../domain/repositories/reservation.repository.interface';
-import { IPaymentRepository, PAYMENT_REPOSITORY } from '../../../payments/domain/repositories/payment.repository.interface';
+import {
+  IReservationRepository,
+  RESERVATION_REPOSITORY,
+} from '../../domain/repositories/reservation.repository.interface';
+import {
+  IPaymentRepository,
+  PAYMENT_REPOSITORY,
+} from '../../../payments/domain/repositories/payment.repository.interface';
 import { EntityNotFoundException } from '../../../../common/domain/exceptions/domain.exception';
 
 export interface ReservationBalanceOutputDto {
@@ -27,15 +33,31 @@ export class GetReservationBalanceUseCase {
   ) {}
 
   async execute(reservationId: string): Promise<ReservationBalanceOutputDto> {
-    const reservation = await this.reservationRepository.findById(reservationId);
+    const reservation =
+      await this.reservationRepository.findById(reservationId);
     if (!reservation) {
-      throw new EntityNotFoundException(`La reserva con ID ${reservationId} no existe.`);
+      throw new EntityNotFoundException(
+        `La reserva con ID ${reservationId} no existe.`,
+      );
     }
 
-    const payments = await this.paymentRepository.findByReservationId(reservation.id);
-    const validatedPayments = payments.filter((p) => p.status === 'VALIDATED');
-    const totalPaid = validatedPayments.reduce((acc, curr) => acc + curr.amount, 0);
-    const pendingBalance = Math.max(0, Number((reservation.totalPrice - totalPaid).toFixed(2)));
+    const payments = await this.paymentRepository.findByReservationId(
+      reservation.id,
+    );
+    const totalPaid = payments.reduce(
+      (sum, p) =>
+        sum +
+        (p.status === 'VALIDATED'
+          ? p.amount
+          : p.status === 'REFUNDED'
+            ? -p.amount
+            : 0),
+      0,
+    );
+    const pendingBalance = Math.max(
+      0,
+      Number((reservation.totalPrice - totalPaid).toFixed(2)),
+    );
 
     return {
       reservationId: reservation.id,

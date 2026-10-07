@@ -26,22 +26,34 @@ export class AuthorizeEntryUseCase {
     private readonly paymentRepository: IPaymentRepository,
   ) {}
 
-  async execute(reservationId: string): Promise<Reservation> {
-    const reservation = await this.reservationRepository.findById(reservationId);
+  async execute(reservationId: string, actorId?: string): Promise<Reservation> {
+    const reservation =
+      await this.reservationRepository.findById(reservationId);
     if (!reservation) {
-      throw new EntityNotFoundException(`Reserva con id ${reservationId} no encontrada.`);
+      throw new EntityNotFoundException(
+        `Reserva con id ${reservationId} no encontrada.`,
+      );
     }
 
-    const payments = await this.paymentRepository.findByReservationId(reservationId);
-    const hasValidatedFinal = payments.some(
-      (p) => p.paymentType === 'SALDO_FINAL' && p.status === 'VALIDATED',
+    const payments =
+      await this.paymentRepository.findByReservationId(reservationId);
+    const paid = payments.reduce(
+      (sum, p) =>
+        sum +
+        (p.status === 'VALIDATED'
+          ? p.amount
+          : p.status === 'REFUNDED'
+            ? -p.amount
+            : 0),
+      0,
     );
-    if (hasValidatedFinal) {
-      reservation.markFinalPaymentPaid();
-    }
-
+    reservation.applyPaidAmount(paid);
     reservation.authorizeEntry();
-    await this.reservationRepository.update(reservation);
+    await this.reservationRepository.update(
+      reservation,
+      actorId,
+      'Ingreso autorizado con pago completo',
+    );
 
     return reservation;
   }

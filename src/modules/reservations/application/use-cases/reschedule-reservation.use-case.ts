@@ -19,7 +19,7 @@ export interface RescheduleReservationInput {
   reservationId: string;
   newDate: string; // YYYY-MM-DD
   newStartTime: string; // HH:mm
-  newEndTime: string;   // HH:mm
+  newEndTime: string; // HH:mm
   newCourtId?: number;
   reason?: string;
   handledBy: string;
@@ -39,15 +39,21 @@ export class RescheduleReservationUseCase {
   ) {}
 
   async execute(input: RescheduleReservationInput): Promise<Reservation> {
-    const oldReservation = await this.reservationRepository.findById(input.reservationId);
+    const oldReservation = await this.reservationRepository.findById(
+      input.reservationId,
+    );
     if (!oldReservation) {
-      throw new EntityNotFoundException(`Reserva ${input.reservationId} no encontrada.`);
+      throw new EntityNotFoundException(
+        `Reserva ${input.reservationId} no encontrada.`,
+      );
     }
 
     const targetCourtId = input.newCourtId || oldReservation.courtId;
     const court = await this.courtRepository.findById(targetCourtId);
     if (!court || !court.isActive) {
-      throw new EntityNotFoundException(`La cancha ${targetCourtId} no está disponible.`);
+      throw new EntityNotFoundException(
+        `La cancha ${targetCourtId} no está disponible.`,
+      );
     }
 
     const timeSlot = new TimeSlot(input.newStartTime, input.newEndTime);
@@ -66,15 +72,10 @@ export class RescheduleReservationUseCase {
       );
     }
 
-    // 1. Marcar reserva anterior como REPROGRAMMED
-    oldReservation.markReprogrammed();
-    if (input.reason) {
-      oldReservation.cancellationReason = `Reprogramada por ${input.handledBy}: ${input.reason}`;
-    }
-    await this.reservationRepository.update(oldReservation);
-
-    // 2. Crear nueva reserva conservando el anticipo
-    const totalPrice = Number((timeSlot.durationHours * court.pricePerHour).toFixed(2));
+    // La sustitución y la imputación de movimientos se confirman en una transacción.
+    const totalPrice = Number(
+      (timeSlot.durationHours * court.pricePerHour).toFixed(2),
+    );
     const newReservation = new Reservation(
       crypto.randomUUID(),
       oldReservation.clientId,
@@ -84,7 +85,7 @@ export class RescheduleReservationUseCase {
       timeSlot.endTime,
       court.pricePerHour,
       totalPrice,
-      oldReservation.advanceRequired, // Conserva el anticipo ya pagado
+      Number((totalPrice * 0.25).toFixed(2)), // Requerido distinto del dinero efectivamente transferido
       'CONFIRMED',
       null,
       input.handledBy,
@@ -96,7 +97,11 @@ export class RescheduleReservationUseCase {
       'MANUAL',
     );
 
-    await this.reservationRepository.save(newReservation);
+    await this.reservationRepository.reschedule(
+      newReservation,
+      input.handledBy,
+      input.reason,
+    );
     return newReservation;
   }
 }

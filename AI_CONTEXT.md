@@ -71,7 +71,7 @@ graph TD
 
 ## 4. Esquema de Base de Datos (Supabase)
 
-La base de datos relacional consta de 8 entidades normalizadas:
+La base de datos tiene ocho entidades operativas más court_types y reservation_events. El esquema aplicado el 24/09/2026 y el diccionario vigente están en docs/02-database-supabase.md del workspace y docs/inspeccion/ del backend.
 
 1. `users`: Usuarios del sistema (`CLIENTE`, `SECRETARIA`, `ADMIN`), con CI, teléfono, email único y hash de contraseña.
 2. `complexes`: Complejos deportivos con ubicación física, contacto y URL del QR de cobro.
@@ -120,7 +120,7 @@ Para consultar especificaciones técnicas exhaustivas, consulta los siguientes a
 - **[01. Arquitectura en Capas y SOLID](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/01-architecture-solid.md)**: Estructura de carpetas de NestJS, separación de responsabilidades, diagrama de clases e interfaces.
 - **[02. Base de Datos Supabase](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/02-database-supabase.md)**: Script DDL completo, diagramas ERD, índices de alto rendimiento, triggers y políticas RLS.
 - **[03. Reglas de Negocio](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/03-business-rules.md)**: Fórmulas matemáticas, diagramas de estados de reservas y pagos, validaciones cronometradas.
-- **[04. Matriz de Historias de Usuario](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/04-user-stories-matrix.md)**: Cobertura completa de las 74 HUs (25 Cliente, 26 Secretaria, 25 Administrador).
+- **[04. Matriz de Historias de Usuario](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/04-user-stories-matrix.md)**: Cobertura completa de las 76 HUs (25 Cliente, 26 Secretaria, 25 Administrador).
 - **[05. Especificación Backend NestJS](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/05-backend-spec-nestjs.md)**: Módulos, controladores, DTOs, casos de uso, filtros de excepción y servicios.
 - **[06. Especificación Frontend Angular 20](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/06-frontend-spec-angular.md)**: Componentes standalone, Signals, guards por rol, calendario interactivo y gestión de estado.
 - **[07. Guía Operativa para Agentes de IA](file:///c:/Users/Mateo/Documents/Mateo%20Tareas/Calidad/docs/07-ai-agent-guide.md)**: Flujo de trabajo estándar para implementar nuevas funcionalidades paso a paso.

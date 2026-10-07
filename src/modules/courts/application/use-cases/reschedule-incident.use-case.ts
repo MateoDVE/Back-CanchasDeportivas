@@ -1,8 +1,17 @@
 import { Injectable, Inject } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { IReservationRepository, RESERVATION_REPOSITORY } from '../../../reservations/domain/repositories/reservation.repository.interface';
-import { ICourtRepository, COURT_REPOSITORY } from '../../domain/repositories/court.repository.interface';
-import { EntityNotFoundException, CourtSlotOccupiedException } from '../../../../common/domain/exceptions/domain.exception';
+import {
+  IReservationRepository,
+  RESERVATION_REPOSITORY,
+} from '../../../reservations/domain/repositories/reservation.repository.interface';
+import {
+  ICourtRepository,
+  COURT_REPOSITORY,
+} from '../../domain/repositories/court.repository.interface';
+import {
+  EntityNotFoundException,
+  CourtSlotOccupiedException,
+} from '../../../../common/domain/exceptions/domain.exception';
 import { Reservation } from '../../../reservations/domain/entities/reservation.entity';
 import { TimeSlot } from '../../../reservations/domain/value-objects/time-slot.vo';
 
@@ -39,16 +48,24 @@ export class RescheduleIncidentUseCase {
     private readonly courtRepository: ICourtRepository,
   ) {}
 
-  async execute(input: RescheduleIncidentInput): Promise<RescheduleIncidentOutputDto> {
-    const oldRes = await this.reservationRepository.findById(input.oldReservationId);
+  async execute(
+    input: RescheduleIncidentInput,
+  ): Promise<RescheduleIncidentOutputDto> {
+    const oldRes = await this.reservationRepository.findById(
+      input.oldReservationId,
+    );
     if (!oldRes) {
-      throw new EntityNotFoundException(`La reserva con ID ${input.oldReservationId} no existe.`);
+      throw new EntityNotFoundException(
+        `La reserva con ID ${input.oldReservationId} no existe.`,
+      );
     }
 
     const targetCourtId = input.newCourtId || oldRes.courtId;
     const court = await this.courtRepository.findById(targetCourtId);
     if (!court || !court.isActive) {
-      throw new EntityNotFoundException(`La cancha ${targetCourtId} no está disponible.`);
+      throw new EntityNotFoundException(
+        `La cancha ${targetCourtId} no está disponible.`,
+      );
     }
 
     const timeSlot = new TimeSlot(input.newStartTime, input.newEndTime);
@@ -62,17 +79,16 @@ export class RescheduleIncidentUseCase {
     );
 
     if (conflicts.length > 0) {
-      throw new CourtSlotOccupiedException('El nuevo horario seleccionado ya se encuentra ocupado.');
+      throw new CourtSlotOccupiedException(
+        'El nuevo horario seleccionado ya se encuentra ocupado.',
+      );
     }
 
-    // 1. Marcar reserva original como REPROGRAMADA por incidente
-    (oldRes as any)._status = 'REPROGRAMMED';
-    oldRes.cancellationReason = 'REPROGRAMADA_POR_INCIDENTE_CANCHA';
-    await this.reservationRepository.update(oldRes);
-
-    // 2. Crear nueva reserva conservando el pago validado
+    // Se conserva la tarifa pactada por incidente; el movimiento es atómico.
     const newReservationId = crypto.randomUUID();
-    const totalPrice = Number((timeSlot.durationHours * oldRes.pricePerHour).toFixed(2));
+    const totalPrice = Number(
+      (timeSlot.durationHours * oldRes.pricePerHour).toFixed(2),
+    );
     const advanceRequired = Number((totalPrice * 0.25).toFixed(2));
 
     const newReservation = new Reservation(
@@ -91,9 +107,16 @@ export class RescheduleIncidentUseCase {
       oldRes.id,
       null,
       new Date(),
+      false,
+      false,
+      'MANUAL',
     );
 
-    await this.reservationRepository.save(newReservation);
+    await this.reservationRepository.reschedule(
+      newReservation,
+      input.secretaryId,
+      'Incidente de cancha',
+    );
 
     return {
       originalReservationId: oldRes.id,
@@ -104,7 +127,8 @@ export class RescheduleIncidentUseCase {
       endTime: newReservation.endTime,
       status: newReservation.status,
       parentReservationId: oldRes.id,
-      message: 'Reprogramación por incidente realizada con éxito conservando el anticipo.',
+      message:
+        'Reprogramación por incidente realizada con éxito conservando el anticipo.',
     };
   }
 }

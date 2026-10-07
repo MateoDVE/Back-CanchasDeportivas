@@ -3,9 +3,7 @@ import {
   IReservationRepository,
   RESERVATION_REPOSITORY,
 } from '../../domain/repositories/reservation.repository.interface';
-import {
-  EntityNotFoundException,
-} from '../../../../common/domain/exceptions/domain.exception';
+import { EntityNotFoundException } from '../../../../common/domain/exceptions/domain.exception';
 import { Reservation } from '../../domain/entities/reservation.entity';
 
 export interface MarkNoShowInput {
@@ -25,16 +23,22 @@ export class MarkNoShowAndReleaseUseCase {
   ) {}
 
   async execute(input: MarkNoShowInput): Promise<Reservation> {
-    const reservation = await this.reservationRepository.findById(input.reservationId);
+    const reservation = await this.reservationRepository.findById(
+      input.reservationId,
+    );
     if (!reservation) {
-      throw new EntityNotFoundException(`Reserva con id ${input.reservationId} no encontrada.`);
+      throw new EntityNotFoundException(
+        `Reserva con id ${input.reservationId} no encontrada.`,
+      );
     }
 
     reservation.markNoShow();
-    if (input.reason) {
-      reservation.cancellationReason = `No-Show declarado por ${input.secretaryId}: ${input.reason}`;
-    }
-    await this.reservationRepository.update(reservation);
+
+    await this.reservationRepository.update(
+      reservation,
+      input.secretaryId,
+      input.reason || 'Inasistencia declarada',
+    );
 
     return reservation;
   }

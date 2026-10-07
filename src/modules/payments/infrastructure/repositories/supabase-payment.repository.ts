@@ -1,7 +1,13 @@
+import { Reservation } from '../../../reservations/domain/entities/reservation.entity';
 import { Injectable, Inject } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
-import { Payment, PaymentMethod, PaymentStatus, PaymentType } from '../../domain/entities/payment.entity';
+import {
+  Payment,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentType,
+} from '../../domain/entities/payment.entity';
 import { SUPABASE_CLIENT } from '../../../../common/supabase/supabase.provider';
 
 @Injectable()
@@ -23,7 +29,38 @@ export class SupabasePaymentRepository implements IPaymentRepository {
       row.handled_by,
       row.rejection_reason,
       new Date(row.created_at),
+      row.processed_at ? new Date(row.processed_at) : null,
+      row.authorized_by ?? null,
+      row.refund_reason ?? null,
+      row.original_reservation_id ?? row.reservation_id,
     );
+  }
+
+  async submitReceipt(
+    reservation: Reservation,
+    url: string,
+    actorId: string,
+  ): Promise<Payment> {
+    const { data, error } = await this.supabase.rpc('submit_advance_receipt', {
+      p_reservation: reservation.id,
+      p_actor: actorId,
+      p_url: url,
+    });
+    if (error) throw new Error(error.message);
+    return this.toDomain(data);
+  }
+
+  async processAdvance(
+    payment: Payment,
+    reservation: Reservation,
+  ): Promise<void> {
+    const { error } = await this.supabase.rpc('process_advance', {
+      p_payment_id: payment.id,
+      p_actor: payment.handledBy,
+      p_approved: payment.status === 'VALIDATED',
+      p_reason: payment.rejectionReason,
+    });
+    if (error) throw new Error(error.message);
   }
 
   async findById(id: number): Promise<Payment | null> {
@@ -33,7 +70,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
       .eq('id', id)
       .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) throw new Error(error.message);
+    if (!data) return null;
     return this.toDomain(data);
   }
 
@@ -43,7 +81,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
       .select('*')
       .eq('reservation_id', reservationId);
 
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return data.map((r) => this.toDomain(r));
   }
 
@@ -59,6 +98,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         status: payment.status,
         handled_by: payment.handledBy,
         rejection_reason: payment.rejectionReason,
+        authorized_by: payment.authorizedBy,
+        refund_reason: payment.refundReason,
         created_at: (payment.createdAt || new Date()).toISOString(),
       })
       .select()
@@ -93,7 +134,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
       .eq('status', 'PENDING')
       .order('created_at', { ascending: true });
 
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return data.map((r) => this.toDomain(r));
   }
 
@@ -103,28 +145,36 @@ export class SupabasePaymentRepository implements IPaymentRepository {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return data.map((r) => this.toDomain(r));
   }
 
-  async findByHandlerAndDate(handledBy: string, date: string): Promise<Payment[]> {
-    const startIso = `${date}T00:00:00.000Z`;
-    const endIso = `${date}T23:59:59.999Z`;
+  async findByHandlerAndDate(
+    handledBy: string,
+    date: string,
+  ): Promise<Payment[]> {
+    const startIso = `${date}T00:00:00.000-04:00`;
+    const endIso = `${date}T23:59:59.999-04:00`;
 
     const { data, error } = await this.supabase
       .from('payments')
       .select('*')
       .eq('handled_by', handledBy)
-      .gte('created_at', startIso)
-      .lte('created_at', endIso);
+      .gte('processed_at', startIso)
+      .lte('processed_at', endIso);
 
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return data.map((r) => this.toDomain(r));
   }
 
-  async findByDateRange(startDate: string, endDate: string): Promise<Payment[]> {
-    const startIso = `${startDate}T00:00:00.000Z`;
-    const endIso = `${endDate}T23:59:59.999Z`;
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<Payment[]> {
+    const startIso = `${startDate}T00:00:00.000-04:00`;
+    const endIso = `${endDate}T23:59:59.999-04:00`;
 
     const { data, error } = await this.supabase
       .from('payments')
@@ -132,7 +182,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
       .gte('created_at', startIso)
       .lte('created_at', endIso);
 
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!data) return [];
     return data.map((r) => this.toDomain(r));
   }
 }

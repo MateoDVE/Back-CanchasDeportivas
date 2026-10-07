@@ -11,14 +11,26 @@ export class SupabaseCourtRepository implements ICourtRepository {
     private readonly supabase: SupabaseClient,
   ) {}
 
-  private supportsImages = false;
+  async findTypes(): Promise<Array<{ type: string; description: string }>> {
+    const { data, error } = await this.supabase
+      .from('court_types')
+      .select('code,description')
+      .eq('is_active', true)
+      .order('code');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((row) => ({
+      type: row.code,
+      description: row.description,
+    }));
+  }
 
-  private imageFields(court: { images?: string[] }): { images?: string[] } {
-    return this.supportsImages || court.images?.length ? { images: court.images || [] } : {};
+  private imageFields(court: { images?: string[] }): {
+    cover_image_url: string | null;
+  } {
+    return { cover_image_url: court.images?.[0] ?? null };
   }
 
   private toDomain(row: any): Court {
-    if ('images' in row) this.supportsImages = true;
     return new Court(
       row.id,
       row.complex_id,
@@ -26,7 +38,7 @@ export class SupabaseCourtRepository implements ICourtRepository {
       row.court_type as CourtType,
       parseFloat(row.price_per_hour),
       row.is_active,
-      row.images || [],
+      row.cover_image_url ? [row.cover_image_url] : [],
     );
   }
 
@@ -41,8 +53,14 @@ export class SupabaseCourtRepository implements ICourtRepository {
     return this.toDomain(data);
   }
 
-  async findByComplex(complexId: number, onlyActive: boolean = true): Promise<Court[]> {
-    let query = this.supabase.from('courts').select('*').eq('complex_id', complexId);
+  async findByComplex(
+    complexId: number,
+    onlyActive: boolean = true,
+  ): Promise<Court[]> {
+    let query = this.supabase
+      .from('courts')
+      .select('*')
+      .eq('complex_id', complexId);
     if (onlyActive) {
       query = query.eq('is_active', true);
     }
@@ -52,19 +70,9 @@ export class SupabaseCourtRepository implements ICourtRepository {
   }
 
   async save(court: Omit<Court, 'id'>): Promise<Court> {
-    const { data: maxRow } = await this.supabase
-      .from('courts')
-      .select('id')
-      .order('id', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const nextId = (maxRow?.id ? Number(maxRow.id) : 0) + 1;
-
-    let { data, error } = await this.supabase
+    const { data, error } = await this.supabase
       .from('courts')
       .insert({
-        id: nextId,
         complex_id: court.complexId,
         name: court.name,
         court_type: court.courtType,
@@ -72,32 +80,14 @@ export class SupabaseCourtRepository implements ICourtRepository {
         is_active: court.isActive,
         ...this.imageFields(court),
       })
-      .select()
+      .select('*')
       .single();
-
-    if (error && error.message?.includes('identity')) {
-      const fallback = await this.supabase
-        .from('courts')
-        .insert({
-          complex_id: court.complexId,
-          name: court.name,
-          court_type: court.courtType,
-          price_per_hour: court.pricePerHour,
-          is_active: court.isActive,
-        ...this.imageFields(court),
-        })
-        .select()
-        .single();
-      data = fallback.data;
-      error = fallback.error;
-    }
 
     if (error || !data) {
       throw new Error(`Error al crear cancha en Supabase: ${error?.message}`);
     }
     return this.toDomain(data);
   }
-
 
   async updatePrice(id: number, newPrice: number): Promise<void> {
     const { error } = await this.supabase
@@ -106,7 +96,9 @@ export class SupabaseCourtRepository implements ICourtRepository {
       .eq('id', id);
 
     if (error) {
-      throw new Error(`Error al actualizar precio de cancha en Supabase: ${error.message}`);
+      throw new Error(
+        `Error al actualizar precio de cancha en Supabase: ${error.message}`,
+      );
     }
   }
 
@@ -123,7 +115,9 @@ export class SupabaseCourtRepository implements ICourtRepository {
       .eq('id', court.id);
 
     if (error) {
-      throw new Error(`Error al actualizar cancha en Supabase: ${error.message}`);
+      throw new Error(
+        `Error al actualizar cancha en Supabase: ${error.message}`,
+      );
     }
   }
 

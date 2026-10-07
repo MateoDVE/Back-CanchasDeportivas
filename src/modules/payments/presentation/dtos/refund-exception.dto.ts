@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsPositive, IsString } from 'class-validator';
+import {
+  IsOptional,
+  IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class RefundExceptionDto {
   @IsNumber({}, { message: 'El monto a devolver debe ser un número válido' })
@@ -9,7 +15,9 @@ export class RefundExceptionDto {
   @IsNotEmpty({ message: 'El motivo no puede estar vacío' })
   reason: string;
 
-  @IsString({ message: 'El nombre del responsable que autoriza es obligatorio' })
+  // Compatibilidad del cliente anterior: la identidad efectiva se toma del JWT.
+  @IsOptional()
+  @IsString({ message: 'El responsable debe ser texto' })
   @IsNotEmpty({ message: 'El responsable que autoriza no puede estar vacío' })
-  authorizedBy: string;
+  authorizedBy?: string;
 }

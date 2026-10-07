@@ -1,9 +1,24 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { IReservationRepository, RESERVATION_REPOSITORY } from '../../domain/repositories/reservation.repository.interface';
-import { ICourtRepository, COURT_REPOSITORY } from '../../../courts/domain/repositories/court.repository.interface';
-import { IComplexRepository, COMPLEX_REPOSITORY } from '../../../complexes/domain/repositories/complex.repository.interface';
-import { IUserRepository, USER_REPOSITORY } from '../../../users/domain/repositories/user.repository.interface';
-import { IPaymentRepository, PAYMENT_REPOSITORY } from '../../../payments/domain/repositories/payment.repository.interface';
+import {
+  IReservationRepository,
+  RESERVATION_REPOSITORY,
+} from '../../domain/repositories/reservation.repository.interface';
+import {
+  ICourtRepository,
+  COURT_REPOSITORY,
+} from '../../../courts/domain/repositories/court.repository.interface';
+import {
+  IComplexRepository,
+  COMPLEX_REPOSITORY,
+} from '../../../complexes/domain/repositories/complex.repository.interface';
+import {
+  IUserRepository,
+  USER_REPOSITORY,
+} from '../../../users/domain/repositories/user.repository.interface';
+import {
+  IPaymentRepository,
+  PAYMENT_REPOSITORY,
+} from '../../../payments/domain/repositories/payment.repository.interface';
 import { EntityNotFoundException } from '../../../../common/domain/exceptions/domain.exception';
 
 export interface ReservationDetailOutputDto {
@@ -72,16 +87,35 @@ export class GetReservationDetailUseCase {
   ) {}
 
   async execute(reservationId: string): Promise<ReservationDetailOutputDto> {
-    const reservation = await this.reservationRepository.findById(reservationId);
+    const reservation =
+      await this.reservationRepository.findById(reservationId);
     if (!reservation) {
-      throw new EntityNotFoundException(`La reserva con ID ${reservationId} no existe.`);
+      throw new EntityNotFoundException(
+        `La reserva con ID ${reservationId} no existe.`,
+      );
     }
 
     const client = await this.userRepository.findById(reservation.clientId);
     const court = await this.courtRepository.findById(reservation.courtId);
-    const complex = court ? await this.complexRepository.findById(court.complexId) : null;
-    const payments = await this.paymentRepository.findByReservationId(reservation.id);
+    const complex = court
+      ? await this.complexRepository.findById(court.complexId)
+      : null;
+    const payments = await this.paymentRepository.findByReservationId(
+      reservation.id,
+    );
 
+    reservation.applyPaidAmount(
+      payments.reduce(
+        (sum, p) =>
+          sum +
+          (p.status === 'VALIDATED'
+            ? p.amount
+            : p.status === 'REFUNDED'
+              ? -p.amount
+              : 0),
+        0,
+      ),
+    );
     return {
       id: reservation.id,
       reservationDate: reservation.reservationDate,

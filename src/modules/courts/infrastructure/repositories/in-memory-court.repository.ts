@@ -4,6 +4,12 @@ import { Court, CourtType } from '../../domain/entities/court.entity';
 
 @Injectable()
 export class InMemoryCourtRepository implements ICourtRepository {
+  async findTypes(): Promise<Array<{ type: string; description: string }>> {
+    return ['Futsal', 'Wally', 'Racket', 'Padel'].map((type) => ({
+      type,
+      description: type,
+    }));
+  }
   private readonly courts: Map<number, Court> = new Map();
   private nextId = 1;
 
@@ -11,8 +17,13 @@ export class InMemoryCourtRepository implements ICourtRepository {
     return this.courts.get(id) || null;
   }
 
-  async findByComplex(complexId: number, onlyActive: boolean = true): Promise<Court[]> {
-    const list = Array.from(this.courts.values()).filter((c) => c.complexId === complexId);
+  async findByComplex(
+    complexId: number,
+    onlyActive: boolean = true,
+  ): Promise<Court[]> {
+    const list = Array.from(this.courts.values()).filter(
+      (c) => c.complexId === complexId,
+    );
     if (onlyActive) {
       return list.filter((c) => c.isActive);
     }
