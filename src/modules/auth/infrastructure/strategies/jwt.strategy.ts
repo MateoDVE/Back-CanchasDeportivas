@@ -1,9 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { USER_REPOSITORY, IUserRepository } from '../../../users/domain/repositories/user.repository.interface';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
 export interface JwtPayload {
+  purpose: string;
   sub: string;
   id: string;
   email: string;
@@ -13,25 +15,23 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(configService: ConfigService, @Inject(USER_REPOSITORY) private readonly users: IUserRepository) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      algorithms: ['HS256'],
       secretOrKey:
-        configService.get<string>('JWT_SECRET') ||
-        'super-secret-jwt-key-canchas-deportivas-2026',
+        configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
   async validate(payload: JwtPayload) {
-    if (!payload || !payload.id || !payload.role) {
+    if (!payload || payload.purpose !== 'access' || !payload.id || payload.sub !== payload.id) {
       throw new UnauthorizedException('Token inválido o corrupto.');
     }
-    return {
-      id: payload.id,
-      email: payload.email,
-      role: payload.role,
-      name: payload.name,
-    };
+    const user = await this.users.findById(payload.id);
+    if (!user?.isActive()) throw new UnauthorizedException('La cuenta no está activa o verificada.');
+    return { id: user.id, email: user.email, role: user.role, name: user.name,
+      phone: user.phone, status: user.status, createdAt: user.createdAt };
   }
 }

@@ -68,6 +68,7 @@ describe('LoginUseCase', () => {
 
     expect(jwtServiceMock.sign)
       .toHaveBeenCalledWith({
+        purpose: 'access',
         sub: 'user-1',
         id: 'user-1',
         email: 'juan@test.com',
@@ -82,7 +83,6 @@ describe('LoginUseCase', () => {
       name: 'Juan Perez',
       email: 'juan@test.com',
       phone: '70000000',
-      ci: '1234567',
       role: 'CLIENTE',
       status: 'ACTIVE',
       createdAt: new Date('2026-01-01'),

@@ -1,3 +1,7 @@
+import { EMAIL_VERIFICATION } from './domain/services/email-verification.interface';
+import { EmailVerificationService } from './infrastructure/services/email-verification.service';
+import { ResendVerificationUseCase } from './application/use-cases/resend-verification.use-case';
+import { AuthRateLimitGuard } from './presentation/guards/auth-rate-limit.guard';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -19,10 +23,9 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         secret:
-          configService.get<string>('JWT_SECRET') ||
-          'super-secret-jwt-key-canchas-deportivas-2026',
+          configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: (configService.get<string>('JWT_EXPIRATION') || '7d') as any,
+          expiresIn: (configService.get<string>('JWT_EXPIRATION') || '1h') as any,
         },
       }),
       inject: [ConfigService],
@@ -30,6 +33,8 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
   ],
   controllers: [AuthController],
   providers: [
+    ResendVerificationUseCase, AuthRateLimitGuard,
+    { provide: EMAIL_VERIFICATION, useClass: EmailVerificationService },
     RegisterClientUseCase,
     LoginUseCase,
     VerifyEmailUseCase,
@@ -39,6 +44,6 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
       useClass: BcryptPasswordHasher,
     },
   ],
-  exports: [RegisterClientUseCase, LoginUseCase, VerifyEmailUseCase, JwtStrategy, PassportModule, PASSWORD_HASHER],
+  exports: [JwtModule, RegisterClientUseCase, LoginUseCase, VerifyEmailUseCase, JwtStrategy, PassportModule, PASSWORD_HASHER],
 })
 export class AuthModule {}

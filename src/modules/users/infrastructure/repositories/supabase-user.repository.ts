@@ -18,11 +18,13 @@ export class SupabaseUserRepository implements IUserRepository {
       row.name,
       row.email,
       row.phone,
-      row.ci,
+      row.ci ?? '',
       row.password_hash,
       row.role as UserRole,
       row.status as UserStatus,
       new Date(row.created_at),
+      row.first_name ?? null,
+      row.last_name ?? null,
     );
   }
 
@@ -41,7 +43,7 @@ export class SupabaseUserRepository implements IUserRepository {
     const { data, error } = await this.supabase
       .from('users')
       .select('*')
-      .ilike('email', email.trim())
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
 
     if (error || !data) return null;
@@ -52,7 +54,7 @@ export class SupabaseUserRepository implements IUserRepository {
     const { data, error } = await this.supabase
       .from('users')
       .select('*')
-      .eq('ci', ci.trim())
+      .eq('ci', ci.trim().toUpperCase())
       .maybeSingle();
 
     if (error || !data) return null;
@@ -63,9 +65,11 @@ export class SupabaseUserRepository implements IUserRepository {
     const { error } = await this.supabase.from('users').insert({
       id: user.id,
       name: user.name,
+      first_name: user.firstName,
+      last_name: user.lastName,
       email: user.email,
       phone: user.phone,
-      ci: user.ci,
+      ci: user.ci || null,
       password_hash: user.passwordHash,
       role: user.role,
       status: user.status,
@@ -82,9 +86,11 @@ export class SupabaseUserRepository implements IUserRepository {
       .from('users')
       .update({
         name: user.name,
+      first_name: user.firstName,
+      last_name: user.lastName,
         email: user.email,
         phone: user.phone,
-        ci: user.ci,
+        ci: user.ci || null,
         password_hash: user.passwordHash,
         role: user.role,
         status: user.status,
@@ -102,7 +108,7 @@ export class SupabaseUserRepository implements IUserRepository {
     const pattern = '%' + term + '%';
     const { data, error } = await this.supabase.from('users').select('*')
       .eq('role', 'CLIENTE').eq('status', 'ACTIVE')
-      .or(['name', 'ci', 'phone', 'email'].map(field => field + '.ilike.' + pattern).join(','))
+      .or(['name', 'phone', 'email'].map(field => field + '.ilike.' + pattern).join(','))
       .order('name').limit(20);
     if (error) throw new Error('No se pudieron buscar clientes.');
     return (data || []).map(row => this.toDomain(row));

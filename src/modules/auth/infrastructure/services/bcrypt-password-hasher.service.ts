@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { IPasswordHasher } from '../../domain/services/password-hasher.interface';
 
@@ -7,6 +7,7 @@ export class BcryptPasswordHasher implements IPasswordHasher {
   private readonly saltRounds = 10;
 
   async hash(password: string): Promise<string> {
+    if (Buffer.byteLength(password, 'utf8') > 72) throw new BadRequestException('La contraseña no puede superar 72 bytes UTF-8.');
     return bcrypt.hash(password, this.saltRounds);
   }
 

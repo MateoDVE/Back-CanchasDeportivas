@@ -44,11 +44,15 @@ export class LoginUseCase {
       throw new UnauthorizedException('Credenciales inválidas.');
     }
 
+    if (user.status === 'PENDING_VERIFICATION') {
+      throw new ForbiddenException('Verifica tu correo electrónico antes de iniciar sesión.');
+    }
     if (!user.isActive()) {
       throw new ForbiddenException('La cuenta de usuario se encuentra inactiva o deshabilitada.');
     }
 
     const payload = {
+      purpose: 'access',
       sub: user.id,
       id: user.id,
       email: user.email,
@@ -65,7 +69,6 @@ export class LoginUseCase {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        ci: user.ci,
         role: user.role,
         status: user.status,
         createdAt: user.createdAt,

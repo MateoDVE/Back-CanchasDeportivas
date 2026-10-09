@@ -18,6 +18,7 @@ describe('VerifyEmailUseCase', () => {
 
     useCase = new VerifyEmailUseCase(
       userRepositoryMock as any,
+      { verify: jest.fn().mockResolvedValue(true), send: jest.fn() },
     );
   });
 
@@ -79,9 +80,9 @@ describe('VerifyEmailUseCase', () => {
       .not.toHaveBeenCalled();
   });
 
-  it('should activate inactive user', async () => {
+  it('should activate pending user', async () => {
     const user = {
-      status: 'PENDING',
+      status: 'PENDING_VERIFICATION',
       activate: jest.fn(),
     };
 

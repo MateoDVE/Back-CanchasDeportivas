@@ -1,3 +1,6 @@
+import { ResendVerificationUseCase } from '../../application/use-cases/resend-verification.use-case';
+import { ResendVerificationDto } from '../dtos/resend-verification.dto';
+import { AuthRateLimitGuard } from '../guards/auth-rate-limit.guard';
 import {
   Controller,
   Post,
@@ -24,12 +27,14 @@ export class AuthController {
     private readonly registerClientUseCase: RegisterClientUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly verifyEmailUseCase: VerifyEmailUseCase,
+    private readonly resendVerification: ResendVerificationUseCase,
   ) {}
 
   /**
    * @reference HU-CLI-01 Registro de cliente
    */
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto): Promise<UserResponseDto> {
@@ -40,6 +45,7 @@ export class AuthController {
    * @reference HU-CLI-02 Validación de correo electrónico
    */
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<VerifyEmailOutputDto> {
@@ -52,11 +58,18 @@ export class AuthController {
    * @reference HU-ADM-01 Iniciar sesión (Admin)
    */
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.loginUseCase.execute(dto);
   }
+
+  @Public()
+  @UseGuards(AuthRateLimitGuard)
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  resend(@Body() dto: ResendVerificationDto) { return this.resendVerification.execute(dto.email); }
 
   /**
    * Obtener perfil del usuario autenticado

@@ -13,6 +13,8 @@ export class User {
     public role: UserRole,
     public status: UserStatus = 'ACTIVE',
     public readonly createdAt: Date = new Date(),
+    public firstName: string | null = null,
+    public lastName: string | null = null,
   ) {}
 
   public isActive(): boolean {

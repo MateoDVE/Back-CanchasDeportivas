@@ -52,7 +52,7 @@ export class InMemoryUserRepository implements IUserRepository {
     const term = query.trim().toLocaleLowerCase();
     return Array.from(this.users.values()).filter(user =>
       user.role === 'CLIENTE' && user.isActive() &&
-      [user.name, user.ci, user.phone, user.email].some(value => value.toLocaleLowerCase().includes(term))
+      [user.name, user.phone, user.email].some(value => value.toLocaleLowerCase().includes(term))
     ).slice(0, 20);
   }
 

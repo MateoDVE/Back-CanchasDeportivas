@@ -10,7 +10,6 @@ export interface CreateStaffInput {
   name: string;
   email: string;
   phone: string;
-  ci: string;
   password: string;
   role: 'SECRETARIA' | 'ADMIN';
 }
@@ -20,7 +19,6 @@ export interface StaffOutputDto {
   name: string;
   email: string;
   phone: string;
-  ci: string;
   role: string;
   status: string;
   createdAt: Date;
@@ -44,10 +42,6 @@ export class ManageStaffUseCase {
       throw new ConflictException('El correo electrónico ya está registrado.');
     }
 
-    const existingByCi = await this.userRepository.findByCi(input.ci);
-    if (existingByCi) {
-      throw new ConflictException('El CI ya se encuentra registrado.');
-    }
 
     const passwordHash = await this.passwordHasher.hash(input.password);
     const user = new User(
@@ -55,7 +49,7 @@ export class ManageStaffUseCase {
       input.name.trim(),
       input.email.trim().toLowerCase(),
       input.phone.trim(),
-      input.ci.trim(),
+      '',
       passwordHash,
       input.role,
       'ACTIVE',
@@ -69,7 +63,6 @@ export class ManageStaffUseCase {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      ci: user.ci,
       role: user.role,
       status: user.status,
       createdAt: user.createdAt,
@@ -85,7 +78,6 @@ export class ManageStaffUseCase {
         name: u.name,
         email: u.email,
         phone: u.phone,
-        ci: u.ci,
         role: u.role,
         status: u.status,
         createdAt: u.createdAt,
@@ -113,7 +105,6 @@ export class ManageStaffUseCase {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      ci: user.ci,
       role: user.role,
       status: user.status,
       createdAt: user.createdAt,
