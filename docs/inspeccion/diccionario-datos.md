@@ -2,6 +2,30 @@
 
 Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe la base remota hasta aplicar la migración.
 
+## audit_log
+
+| Columna | Tipo | Nulo | Valor predeterminado |
+|---|---|---|---|
+| id | bigint | NO | — |
+| table_name | character varying(63) | NO | — |
+| record_id | character varying(36) | NO | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | NO | clock_timestamp() |
+| audit_action | character varying(6) | NO | — |
+| changed_columns | character varying(63)[] | NO | '{}'::character varying[] |
+
+| Restricción | Definición | Validada en datos existentes |
+|---|---|---|
+| audit_log_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| audit_log_audit_action_not_null | NOT NULL audit_action | Sí |
+| audit_log_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
+| audit_log_audit_at_not_null | NOT NULL audit_at | Sí |
+| audit_log_changed_columns_not_null | NOT NULL changed_columns | Sí |
+| audit_log_id_not_null | NOT NULL id | Sí |
+| audit_log_pkey | PRIMARY KEY (id) | Sí |
+| audit_log_record_id_not_null | NOT NULL record_id | Sí |
+| audit_log_table_name_not_null | NOT NULL table_name | Sí |
+
 ## cash_shifts
 
 | Columna | Tipo | Nulo | Valor predeterminado |
@@ -12,16 +36,21 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | total_system | numeric(10,2) | NO | — |
 | total_declared_cash | numeric(10,2) | NO | — |
 | closed_at | timestamp with time zone | YES | CURRENT_TIMESTAMP |
-| total_system_cash | numeric | NO | 0 |
-| total_system_qr | numeric | NO | 0 |
-| difference | numeric | NO | 0 |
-| notes | text | YES | — |
+| total_system_cash | numeric(10,2) | NO | 0 |
+| total_system_qr | numeric(10,2) | NO | 0 |
+| difference | numeric(10,2) | NO | 0 |
+| notes | character varying(1000) | YES | — |
 | is_closed | boolean | NO | true |
 | created_at | timestamp with time zone | NO | now() |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
 | cash_declared_valid | CHECK (((total_declared_cash >= (0)::numeric) AND (total_declared_cash < 'Infinity'::numeric))) | Sí |
+| cash_shifts_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| cash_shifts_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | cash_shifts_created_at_not_null | NOT NULL created_at | Sí |
 | cash_shifts_difference_not_null | NOT NULL difference | Sí |
 | cash_shifts_id_not_null | NOT NULL id | Sí |
@@ -42,12 +71,17 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | id | integer | NO | nextval('complexes_id_seq'::regclass) |
 | name | character varying(100) | NO | — |
 | location | character varying(255) | NO | — |
-| contact_info | text | YES | — |
+| contact_info | character varying(255) | YES | — |
 | payment_qr_url | character varying(255) | YES | — |
 | is_active | boolean | YES | true |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
+| complexes_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| complexes_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | complexes_id_not_null | NOT NULL id | Sí |
 | complexes_location_not_null | NOT NULL location | Sí |
 | complexes_name_not_null | NOT NULL name | Sí |
@@ -61,10 +95,15 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | court_id | integer | NO | — |
 | start_datetime | timestamp with time zone | NO | — |
 | end_datetime | timestamp with time zone | NO | — |
-| reason | text | NO | — |
+| reason | character varying(500) | NO | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
+| court_incidents_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| court_incidents_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | court_incidents_court_id_fkey | FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE CASCADE | Sí |
 | court_incidents_court_id_not_null | NOT NULL court_id | Sí |
 | court_incidents_end_datetime_not_null | NOT NULL end_datetime | Sí |
@@ -81,13 +120,18 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 |---|---|---|---|
 | id | integer | NO | nextval('court_schedules_id_seq'::regclass) |
 | court_id | integer | NO | — |
-| day_of_week | integer | YES | — |
+| day_of_week | smallint | YES | — |
 | specific_date | date | YES | — |
 | open_time | time without time zone | NO | — |
 | close_time | time without time zone | NO | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
+| court_schedules_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| court_schedules_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | court_schedules_close_time_not_null | NOT NULL close_time | Sí |
 | court_schedules_court_id_fkey | FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE CASCADE | Sí |
 | court_schedules_court_id_not_null | NOT NULL court_id | Sí |
@@ -103,11 +147,16 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | Columna | Tipo | Nulo | Valor predeterminado |
 |---|---|---|---|
 | code | character varying(50) | NO | — |
-| description | text | NO | — |
+| description | character varying(255) | NO | — |
 | is_active | boolean | NO | true |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
+| court_types_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| court_types_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | court_types_code_not_null | NOT NULL code | Sí |
 | court_types_description_not_null | NOT NULL description | Sí |
 | court_types_is_active_not_null | NOT NULL is_active | Sí |
@@ -125,9 +174,15 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | is_active | boolean | YES | true |
 | images | jsonb | YES | — |
 | cover_image_url | text | YES | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
+| court_cover_length | CHECK ((length(cover_image_url) <= 2800000)) | Sí |
+| courts_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| courts_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | courts_complex_id_fkey | FOREIGN KEY (complex_id) REFERENCES complexes(id) ON DELETE CASCADE | Sí |
 | courts_complex_id_not_null | NOT NULL complex_id | Sí |
 | courts_court_type_not_null | NOT NULL court_type | Sí |
@@ -145,26 +200,31 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | id | integer | NO | nextval('payments_id_seq'::regclass) |
 | reservation_id | uuid | NO | — |
 | amount | numeric(10,2) | NO | — |
-| payment_type | character varying(20) | NO | — |
-| payment_method | character varying(20) | NO | — |
+| payment_type | character varying(12) | NO | — |
+| payment_method | character varying(8) | NO | — |
 | receipt_image_url | character varying(255) | YES | — |
 | status | character varying(20) | NO | — |
 | handled_by | uuid | YES | — |
-| rejection_reason | text | YES | — |
+| rejection_reason | character varying(500) | YES | — |
 | created_at | timestamp with time zone | YES | CURRENT_TIMESTAMP |
 | processed_at | timestamp with time zone | YES | — |
 | authorized_by | uuid | YES | — |
-| refund_reason | text | YES | — |
+| refund_reason | character varying(500) | YES | — |
 | original_reservation_id | uuid | NO | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
 | payments_amount_not_null | NOT NULL amount | Sí |
 | payments_amount_valid | CHECK (((amount > (0)::numeric) AND (amount < 'Infinity'::numeric))) | Sí |
+| payments_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| payments_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | payments_authorized_by_fkey | FOREIGN KEY (authorized_by) REFERENCES users(id) | Sí |
 | payments_handled_by_fkey | FOREIGN KEY (handled_by) REFERENCES users(id) | Sí |
 | payments_id_not_null | NOT NULL id | Sí |
-| payments_method_valid | CHECK (((payment_method)::text = ANY ((ARRAY['QR'::character varying, 'EFECTIVO'::character varying])::text[]))) | Sí |
+| payments_method_valid | CHECK (((payment_method)::text = ANY (ARRAY[('QR'::character varying)::text, ('EFECTIVO'::character varying)::text]))) | Sí |
 | payments_original_reservation_id_fkey | FOREIGN KEY (original_reservation_id) REFERENCES reservations(id) | Sí |
 | payments_original_reservation_id_not_null | NOT NULL original_reservation_id | Sí |
 | payments_payment_method_not_null | NOT NULL payment_method | Sí |
@@ -175,7 +235,7 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | payments_reservation_id_fkey | FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE | Sí |
 | payments_reservation_id_not_null | NOT NULL reservation_id | Sí |
 | payments_status_not_null | NOT NULL status | Sí |
-| payments_type_status_valid | CHECK (((((payment_type)::text = ANY ((ARRAY['ANTICIPO'::character varying, 'SALDO_FINAL'::character varying])::text[])) AND ((status)::text = ANY ((ARRAY['PENDING'::character varying, 'VALIDATED'::character varying, 'REJECTED'::character varying])::text[]))) OR (((payment_type)::text = 'DEVOLUCION'::text) AND ((status)::text = 'REFUNDED'::text)))) | Sí |
+| payments_type_status_valid | CHECK (((((payment_type)::text = ANY (ARRAY[('ANTICIPO'::character varying)::text, ('SALDO_FINAL'::character varying)::text])) AND ((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('VALIDATED'::character varying)::text, ('REJECTED'::character varying)::text]))) OR (((payment_type)::text = 'DEVOLUCION'::text) AND ((status)::text = 'REFUNDED'::text)))) | Sí |
 
 ## reservation_events
 
@@ -183,16 +243,21 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 |---|---|---|---|
 | id | bigint | NO | — |
 | reservation_id | uuid | NO | — |
-| from_status | character varying(30) | YES | — |
-| to_status | character varying(30) | NO | — |
+| from_status | character varying(20) | YES | — |
+| to_status | character varying(20) | NO | — |
 | actor_id | uuid | YES | — |
 | occurred_at | timestamp with time zone | NO | clock_timestamp() |
-| reason | text | YES | — |
+| reason | character varying(500) | YES | — |
 | related_reservation_id | uuid | YES | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
 | reservation_events_actor_id_fkey | FOREIGN KEY (actor_id) REFERENCES users(id) | Sí |
+| reservation_events_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| reservation_events_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | reservation_events_id_not_null | NOT NULL id | Sí |
 | reservation_events_occurred_at_not_null | NOT NULL occurred_at | Sí |
 | reservation_events_pkey | PRIMARY KEY (id) | Sí |
@@ -214,18 +279,23 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | price_per_hour | numeric(10,2) | NO | — |
 | total_price | numeric(10,2) | NO | — |
 | advance_required | numeric(10,2) | NO | — |
-| status | character varying(30) | NO | — |
+| status | character varying(20) | NO | — |
 | expires_at | timestamp with time zone | YES | — |
 | created_by | uuid | NO | — |
 | parent_reservation_id | uuid | YES | — |
-| cancellation_reason | text | YES | — |
+| cancellation_reason | character varying(500) | YES | — |
 | created_at | timestamp with time zone | YES | CURRENT_TIMESTAMP |
-| origin | character varying(20) | YES | — |
+| origin | character varying(8) | YES | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
 | reservations_advance_required_not_null | NOT NULL advance_required | Sí |
 | reservations_amount_valid | CHECK (((price_per_hour > (0)::numeric) AND (price_per_hour < 'Infinity'::numeric) AND (total_price = round(((price_per_hour * EXTRACT(epoch FROM (end_time - start_time))) / (3600)::numeric), 2)) AND (advance_required = round((total_price * 0.25), 2)))) | Sí |
+| reservations_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| reservations_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | reservations_client_id_fkey | FOREIGN KEY (client_id) REFERENCES users(id) | Sí |
 | reservations_client_id_not_null | NOT NULL client_id | Sí |
 | reservations_court_id_fkey | FOREIGN KEY (court_id) REFERENCES courts(id) | Sí |
@@ -235,17 +305,17 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | reservations_end_time_not_null | NOT NULL end_time | Sí |
 | reservations_expiry_required | CHECK ((((status)::text <> 'TEMPORAL'::text) OR (expires_at IS NOT NULL))) | Sí |
 | reservations_id_not_null | NOT NULL id | Sí |
-| reservations_no_overlap | EXCLUDE USING gist (court_id WITH =, tsrange((reservation_date + start_time), (reservation_date + end_time), '[)'::text) WITH &&) WHERE (((status)::text = ANY ((ARRAY['TEMPORAL'::character varying, 'PENDING_VALIDATION'::character varying, 'CONFIRMED'::character varying, 'COMPLETED'::character varying])::text[]))) | Sí |
+| reservations_no_overlap | EXCLUDE USING gist (court_id WITH =, tsrange((reservation_date + start_time), (reservation_date + end_time), '[)'::text) WITH &&) WHERE (((status)::text = ANY (ARRAY[('TEMPORAL'::character varying)::text, ('PENDING_VALIDATION'::character varying)::text, ('CONFIRMED'::character varying)::text, ('COMPLETED'::character varying)::text]))) | Sí |
 | reservations_not_own_parent | CHECK ((parent_reservation_id <> id)) | Sí |
-| reservations_origin_valid | CHECK (((origin)::text = ANY ((ARRAY['WEB'::character varying, 'MANUAL'::character varying, 'WHATSAPP'::character varying])::text[]))) | Sí |
+| reservations_origin_valid | CHECK (((origin)::text = ANY (ARRAY[('WEB'::character varying)::text, ('MANUAL'::character varying)::text, ('WHATSAPP'::character varying)::text]))) | Sí |
 | reservations_parent_reservation_id_fkey | FOREIGN KEY (parent_reservation_id) REFERENCES reservations(id) | Sí |
 | reservations_pkey | PRIMARY KEY (id) | Sí |
 | reservations_price_per_hour_not_null | NOT NULL price_per_hour | Sí |
 | reservations_reservation_date_not_null | NOT NULL reservation_date | Sí |
 | reservations_start_time_not_null | NOT NULL start_time | Sí |
 | reservations_status_not_null | NOT NULL status | Sí |
-| reservations_status_valid | CHECK (((status)::text = ANY ((ARRAY['TEMPORAL'::character varying, 'PENDING_VALIDATION'::character varying, 'CONFIRMED'::character varying, 'CANCELLED'::character varying, 'REPROGRAMMED'::character varying, 'EXPIRED'::character varying, 'NO_SHOW'::character varying, 'COMPLETED'::character varying])::text[]))) | Sí |
-| reservations_time_valid | CHECK (((end_time > start_time) AND (EXTRACT(epoch FROM (end_time - start_time)) >= (3600)::numeric) AND (mod(EXTRACT(epoch FROM (end_time - start_time)), (3600)::numeric) = (0)::numeric) AND (EXTRACT(minute FROM start_time) = ANY (ARRAY[(0)::numeric, (30)::numeric])) AND (EXTRACT(second FROM start_time) = (0)::numeric))) | Sí |
+| reservations_status_valid | CHECK (((status)::text = ANY (ARRAY[('TEMPORAL'::character varying)::text, ('PENDING_VALIDATION'::character varying)::text, ('CONFIRMED'::character varying)::text, ('CANCELLED'::character varying)::text, ('REPROGRAMMED'::character varying)::text, ('EXPIRED'::character varying)::text, ('NO_SHOW'::character varying)::text, ('COMPLETED'::character varying)::text]))) | Sí |
+| reservations_time_valid | CHECK (((end_time > start_time) AND (EXTRACT(epoch FROM (end_time - start_time)) >= (1800)::numeric) AND (mod(EXTRACT(epoch FROM (end_time - start_time)), (1800)::numeric) = (0)::numeric) AND (EXTRACT(minute FROM start_time) = ANY (ARRAY[(0)::numeric, (30)::numeric])) AND (EXTRACT(second FROM start_time) = (0)::numeric) AND (EXTRACT(minute FROM end_time) = ANY (ARRAY[(0)::numeric, (30)::numeric])) AND (EXTRACT(second FROM end_time) = (0)::numeric))) | Sí |
 | reservations_total_price_not_null | NOT NULL total_price | Sí |
 
 ## users
@@ -253,19 +323,25 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | Columna | Tipo | Nulo | Valor predeterminado |
 |---|---|---|---|
 | id | uuid | NO | gen_random_uuid() |
-| name | character varying(100) | NO | — |
+| name | character varying(161) | NO | — |
 | email | character varying(100) | NO | — |
 | phone | character varying(20) | NO | — |
-| ci | character varying(20) | NO | — |
-| password_hash | character varying(255) | NO | — |
-| role | character varying(20) | NO | — |
+| ci | character varying(20) | YES | — |
+| password_hash | character varying(100) | NO | — |
+| role | character varying(10) | NO | — |
 | status | character varying(20) | NO | — |
 | created_at | timestamp with time zone | YES | CURRENT_TIMESTAMP |
+| first_name | character varying(80) | YES | — |
+| last_name | character varying(80) | YES | — |
+| audit_actor_id | uuid | YES | — |
+| audit_at | timestamp with time zone | YES | — |
+| audit_action | character varying(6) | YES | — |
 
 | Restricción | Definición | Validada en datos existentes |
 |---|---|---|
+| users_audit_action_check | CHECK (((audit_action)::text = ANY ((ARRAY['INSERT'::character varying, 'UPDATE'::character varying, 'DELETE'::character varying])::text[]))) | Sí |
+| users_audit_actor_id_fkey | FOREIGN KEY (audit_actor_id) REFERENCES users(id) | Sí |
 | users_ci_key | UNIQUE (ci) | Sí |
-| users_ci_not_null | NOT NULL ci | Sí |
 | users_email_key | UNIQUE (email) | Sí |
 | users_email_not_null | NOT NULL email | Sí |
 | users_id_not_null | NOT NULL id | Sí |
@@ -274,7 +350,8 @@ Fuente: `database/schema.sql`, reproducida por `npm run db:schema`. No describe 
 | users_phone_not_null | NOT NULL phone | Sí |
 | users_pkey | PRIMARY KEY (id) | Sí |
 | users_role_not_null | NOT NULL role | Sí |
-| users_role_valid | CHECK (((role)::text = ANY ((ARRAY['CLIENTE'::character varying, 'SECRETARIA'::character varying, 'ADMIN'::character varying])::text[]))) | Sí |
+| users_role_valid | CHECK (((role)::text = ANY (ARRAY[('CLIENTE'::character varying)::text, ('SECRETARIA'::character varying)::text, ('ADMIN'::character varying)::text]))) | Sí |
+| users_split_names_valid | CHECK ((((first_name IS NULL) AND (last_name IS NULL)) OR ((first_name IS NOT NULL) AND (last_name IS NOT NULL) AND (length(TRIM(BOTH FROM first_name)) > 0) AND (length(TRIM(BOTH FROM last_name)) > 0)))) | Sí |
 | users_status_not_null | NOT NULL status | Sí |
 | users_status_valid | CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'INACTIVE'::character varying, 'PENDING_VERIFICATION'::character varying])::text[]))) | Sí |
 

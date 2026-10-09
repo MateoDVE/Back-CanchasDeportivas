@@ -16,9 +16,24 @@ try {
  await db.exec(await fs.readFile('migrations/20260908_cash_shift_schema.sql','utf8'));
  await db.exec(await fs.readFile(migration,'utf8'));
  await db.exec(await fs.readFile('supabase/migrations/20260924185757_inspection_access_hardening.sql','utf8'));
+ await db.exec(await fs.readFile('supabase/migrations/20261009161546_email_verification_and_half_hour_bookings.sql','utf8'));
+ const auditMigration=await fs.readFile('supabase/migrations/20261009161634_bounded_types_and_table_audit.sql','utf8');
+ await q("INSERT INTO complexes(name,location,contact_info) VALUES('Preflight','Prueba',repeat('x',256))");
+ await assert.rejects(()=>db.exec(auditMigration),/Preflight/);
+ await db.exec('ROLLBACK');
+ assert.equal((await q("SELECT length(contact_info) AS length FROM complexes WHERE name='Preflight'")).rows[0].length,256);
+ await q("DELETE FROM complexes WHERE name='Preflight'");
+ await db.exec(auditMigration);
+ console.log('PASS preflight aborta sin truncar datos históricos'); passed++;
  console.log('PASS DDL original + migración de caja + migración formal'); passed++;
  const client=randomUUID(),staff=randomUUID(),other=randomUUID();
- for(const [id,role] of [[client,'CLIENTE'],[staff,'SECRETARIA'],[other,'SECRETARIA']]) await q("INSERT INTO users(id,name,email,phone,ci,password_hash,role,status) VALUES($1::uuid,'Test',$1::uuid::text||'@example.invalid','1',left($1::uuid::text,20),'test',$2,'ACTIVE')",[id,role]);
+ for(const [id,role] of [[client,'CLIENTE'],[staff,'SECRETARIA'],[other,'SECRETARIA']]) await q("INSERT INTO users(id,name,email,phone,ci,password_hash,role,status) VALUES($1::uuid,'Test',$1::uuid::text||'@example.invalid','1',(1000000 + (SELECT count(*) FROM users))::text,'test',$2,'ACTIVE')",[id,role]);
+ await check('Nombres y apellidos separados sin reinterpretar usuarios históricos',async()=>{
+   assert.equal((await q('SELECT first_name FROM users WHERE id=$1',[client])).rows[0].first_name,null);
+   await q("UPDATE users SET first_name='María José',last_name='Pérez López',name='María José Pérez López' WHERE id=$1",[client]);
+   assert.equal((await q('SELECT last_name FROM users WHERE id=$1',[client])).rows[0].last_name,'Pérez López');
+   await rejects("UPDATE users SET last_name=' ' WHERE id=$1",[client],/users_split_names_valid/);
+ });
  await q("INSERT INTO complexes(id,name,location) VALUES(1,'Test','Test')");
  await q("INSERT INTO courts(id,complex_id,name,court_type,price_per_hour) VALUES(1,1,'A','Futsal',100),(2,1,'B','Padel',100)");
  await q("SELECT setval('courts_id_seq',2)");
@@ -47,10 +62,13 @@ try {
    await q('SELECT process_advance($1,$2,false,$3)',[payment,staff,'Comprobante ilegible']);
    assert.equal((await q('SELECT status FROM reservations WHERE id=$1',[receipt.id])).rows[0].status,'CANCELLED');
  });
- await check('Se rechazan 90 minutos, fracciones y anticipo incorrecto',async()=>{
-   await assert.rejects(()=>save(reservation('14:00','15:30',{total_price:150,advance_required:37.5})),/reservations_time_valid/);
+ await check('Medias horas y 90 minutos conservan precios proporcionales',async()=>{
+   await save(reservation('14:00','15:30',{total_price:150,advance_required:37.5,reservation_date:'2030-01-08'}));
+   await save(reservation('15:30','16:00',{total_price:50,advance_required:12.5,reservation_date:'2030-01-08'}));
+ });
+ await check('Se rechazan cuartos de hora y anticipo incorrecto',async()=>{
    await assert.rejects(()=>save(reservation('14:15','15:15')),/reservations_time_valid/);
-   await assert.rejects(()=>save(reservation('14:00','15:00',{advance_required:10})),/reservations_amount_valid/);
+   await assert.rejects(()=>save(reservation('18:00','19:00',{advance_required:10})),/reservations_amount_valid/);
  });
  await check('Horarios exigen día XOR fecha y son únicos',async()=>{
    await rejects("INSERT INTO court_schedules(court_id,open_time,close_time) VALUES(1,'09:00','10:00')",[],/schedules_calendar_xor/);
@@ -142,6 +160,33 @@ try {
    await db.exec('SET ROLE service_role');
    try { await save(reservation('09:00','10:00',{reservation_date:'2030-03-01'})); }
    finally { await db.exec('RESET ROLE'); }
+ });
+ await check('Las once tablas tienen usuario, fecha y acción; todos los importes tienen escala dos',async()=>{
+   const {rows}=await q("SELECT table_name,count(*)::int AS columns FROM information_schema.columns WHERE table_schema='public' AND column_name IN ('audit_actor_id','audit_at','audit_action') GROUP BY table_name");
+   assert.equal(rows.length,11); assert.ok(rows.every(r=>r.columns===3));
+   assert.equal((await q("SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema='public' AND data_type='numeric' AND (numeric_scale IS DISTINCT FROM 2 OR numeric_precision IS NULL)")).rows[0].n,0);
+   assert.equal((await q("SELECT pg_column_size(gen_random_uuid()) AS bytes")).rows[0].bytes,16);
+   assert.equal((await q("SELECT data_type FROM information_schema.columns WHERE table_name='court_schedules' AND column_name='day_of_week'")).rows[0].data_type,'smallint');
+ });
+ await check('CI opcional admite varios usuarios sin identificación',async()=>{
+   for(let i=0;i<2;i++) await q("INSERT INTO users(name,email,phone,password_hash,role,status) VALUES('Sin CI',$1,'70000000','test','CLIENTE','PENDING_VERIFICATION')",['sinci'+i+'@example.invalid']);
+   assert.equal((await q("SELECT count(*)::int AS n FROM users WHERE email LIKE 'sinci%' AND ci IS NULL")).rows[0].n,2);
+ });
+ await check('Autor confiable, historial de cambios y eliminación sin datos sensibles',async()=>{
+   await q("SELECT set_config('request.headers',$1,false)",[JSON.stringify({'x-audit-actor':staff})]);
+   const inserted=(await q("INSERT INTO complexes(name,location) VALUES('Auditar','Prueba') RETURNING *")).rows[0];
+   assert.equal(inserted.audit_actor_id,staff); assert.equal(inserted.audit_action,'INSERT'); assert.ok(inserted.audit_at);
+   await q("UPDATE complexes SET name='Actualizado' WHERE id=$1",[inserted.id]);
+   await q('DELETE FROM complexes WHERE id=$1',[inserted.id]);
+   const events=(await q("SELECT * FROM audit_log WHERE table_name='complexes' AND record_id=$1 ORDER BY id",[String(inserted.id)])).rows;
+   assert.deepEqual(events.map(e=>e.audit_action),['INSERT','UPDATE','DELETE']);
+   assert.deepEqual(events[1].changed_columns,['name']); assert.ok(events.every(e=>e.audit_actor_id===staff));
+   await rejects('DELETE FROM audit_log WHERE id=$1',[events[0].id],/inmutable/);
+   await rejects("UPDATE audit_log SET audit_action='UPDATE' WHERE id=$1",[events[0].id],/inmutable/);
+   await rejects('TRUNCATE audit_log',[],/inmutable/);
+   await q("SELECT set_config('request.headers','',false)");
+   const system=(await q("INSERT INTO court_types(code,description) VALUES('Automatico','Test') RETURNING *")).rows[0];
+   assert.equal(system.audit_actor_id,null); assert.ok(system.audit_at);
  });
  console.log(`\n${passed} verificaciones PostgreSQL correctas. Motor PGlite; no conexión a producción.`);
 } catch(error) { console.error('FAIL',error.message,error.detail ?? '',error.where ?? ''); process.exitCode=1; }
