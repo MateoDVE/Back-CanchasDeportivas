@@ -44,23 +44,28 @@ describe('Reservation Domain & Business Rules (RN-01 to RN-05)', () => {
     const pricePerHour = 100.0;
 
     it('debe calcular exactamente el 25% de anticipo y 75% de saldo pendiente (RN-04 & HU-CLI-14)', () => {
-      const reservation = Reservation.createTemporal({
-        id: 'res-test-1',
-        clientId: 'client-1',
-        courtId: 1,
-        reservationDate: '2026-09-10',
-        timeSlot,
-        pricePerHour,
-        createdBy: 'client-1',
-      });
-
-      // Total = 2 horas * 100 = 200
-      expect(reservation.totalPrice).toBe(200.0);
-      // Anticipo = 200 * 0.25 = 50
-      expect(reservation.advanceRequired).toBe(50.0);
-      // Saldo pendiente = 200 - 50 = 150
-      expect(reservation.pendingBalance).toBe(150.0);
+    const reservation = Reservation.createTemporal({
+      id: 'res-test-1',
+      clientId: 'client-1',
+      courtId: 1,
+      reservationDate: '2026-09-10',
+      timeSlot,
+      pricePerHour,
+      createdBy: 'client-1',
     });
+
+    expect(reservation.totalPrice).toBe(200.0);
+
+    expect(reservation.advanceRequired).toBe(50.0);
+
+    // Mientras es TEMPORAL, el saldo pendiente todavía es 0
+    expect(reservation.pendingBalance).toBe(0);
+
+    reservation.markAsPendingValidation();
+
+    // Una vez pasa a validación, queda pendiente el 75%
+    expect(reservation.pendingBalance).toBe(150.0);
+  });
 
     it('debe establecer el bloqueo temporal de 5 minutos exactos (RN-03 & HU-CLI-12)', () => {
       const before = Date.now() + 5 * 60 * 1000 - 1000;

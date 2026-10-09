@@ -1,0 +1,6 @@
+projectKey=Back-CanchasDeportivas
+serverUrl=http://localhost:9000
+serverVersion=26.9.0.129388
+dashboardUrl=http://localhost:9000/dashboard?id=Back-CanchasDeportivas
+ceTaskId=ac4d0731-54e9-4be1-9a5a-91ac75516f4a
+ceTaskUrl=http://localhost:9000/api/ce/task?id=ac4d0731-54e9-4be1-9a5a-91ac75516f4a
