@@ -74,8 +74,8 @@ export class CourtsController {
   @Get('courts/:id/calculate-cost')
   async calculateCost(
     @Param('id', ParseIntPipe) id: number,
-    @Query('durationHours', ParseIntPipe) durationHours: number,
+    @Query('durationHours') durationHours: string,
   ): Promise<CalculatedCostOutputDto> {
-    return this.calculateReservationCostUseCase.execute(id, durationHours);
+    return this.calculateReservationCostUseCase.execute(id, Number(durationHours));
   }
 }

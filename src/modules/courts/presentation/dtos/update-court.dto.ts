@@ -1,3 +1,4 @@
+import { Max } from 'class-validator';
 import { IsArray, ArrayMaxSize, MaxLength, Matches } from 'class-validator';
 import {
   IsBoolean,
@@ -27,6 +28,7 @@ export class UpdateCourtDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(50)
   name?: string;
 
   @IsOptional()
@@ -57,8 +59,9 @@ export class UpdateCourtDto {
   courtType?: CourtType;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false })
   @IsPositive()
+  @Max(99999999.99)
   pricePerHour?: number;
 
   @IsOptional()

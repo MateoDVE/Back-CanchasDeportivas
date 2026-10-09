@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DeactivateComplexUseCase } from './application/use-cases/deactivate-complex.use-case';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { COMPLEX_REPOSITORY } from './domain/repositories/complex.repository.interface';
 import { InMemoryComplexRepository } from './infrastructure/repositories/in-memory-complex.repository';
@@ -17,6 +18,7 @@ import { ComplexesController } from './presentation/controllers/complexes.contro
 @Module({
   controllers: [AdminComplexesController, ComplexesController],
   providers: [
+    DeactivateComplexUseCase,
     InMemoryComplexRepository,
     {
       provide: COMPLEX_REPOSITORY,

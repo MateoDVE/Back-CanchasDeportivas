@@ -1,3 +1,4 @@
+import { Max } from 'class-validator';
 import { IsArray, ArrayMaxSize, MaxLength, Matches } from 'class-validator';
 import {
   IsBoolean,
@@ -33,6 +34,7 @@ export class CreateCourtDto {
 
   @IsString({ message: 'El nombre debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El nombre de la cancha es obligatorio' })
+  @MaxLength(50)
   name: string;
 
   @Transform(({ value, obj }) => {
@@ -61,8 +63,9 @@ export class CreateCourtDto {
   @Matches(/\S/, { message: 'Selecciona un tipo de cancha.' })
   courtType: CourtType;
 
-  @IsNumber({}, { message: 'El precio por hora debe ser un número' })
+  @IsNumber({ maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false }, { message: 'El precio por hora debe ser un número' })
   @IsPositive({ message: 'El precio por hora debe ser mayor a 0' })
+  @Max(99999999.99)
   pricePerHour: number;
 
   @IsOptional()

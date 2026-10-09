@@ -1,3 +1,4 @@
+import { AuthorizeReservationAccessUseCase } from '../../../reservations/application/use-cases/authorize-reservation-access.use-case';
 import {
   Controller,
   Get,
@@ -20,6 +21,7 @@ import { GetPaymentStatusUseCase } from '../../application/use-cases/get-payment
 @Controller('api/v1/payments')
 export class PaymentsController {
   constructor(
+    private readonly access: AuthorizeReservationAccessUseCase,
     private readonly uploadReceiptUseCase: UploadReceiptUseCase,
     private readonly getPaymentStatusUseCase: GetPaymentStatusUseCase,
   ) {}
@@ -50,8 +52,10 @@ export class PaymentsController {
   @Get(':reservationId/status')
   @UseGuards(JwtAuthGuard)
   async getPaymentStatus(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('reservationId') reservationId: string,
   ) {
+    await this.access.execute(reservationId, user.id);
     return this.getPaymentStatusUseCase.execute(reservationId);
   }
 }

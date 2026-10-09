@@ -23,8 +23,8 @@ export class CalculateReservationCostUseCase {
   ) {}
 
   async execute(courtId: number, durationHours: number): Promise<CalculatedCostOutputDto> {
-    if (durationHours < 1 || !Number.isInteger(durationHours)) {
-      throw new ValidationException('La duración debe ser de al menos 1 hora y en bloques enteros.');
+    if (!Number.isFinite(durationHours) || durationHours < 0.5 || !Number.isInteger(durationHours * 2)) {
+      throw new ValidationException('La duración debe ser de al menos 30 minutos y en bloques de media hora.');
     }
 
     const court = await this.courtRepository.findById(courtId);

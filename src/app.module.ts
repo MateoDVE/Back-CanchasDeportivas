@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditContextInterceptor } from './common/supabase/audit-context';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
@@ -33,6 +35,6 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     AnalyticsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_INTERCEPTOR, useClass: AuditContextInterceptor }],
 })
 export class AppModule {}

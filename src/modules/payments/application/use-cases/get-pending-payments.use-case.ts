@@ -9,7 +9,6 @@ export interface PendingPaymentItemDto {
   paymentId: number;
   reservationId: string;
   clientName: string;
-  clientCi: string;
   courtName: string;
   complexName: string;
   amount: number;
@@ -29,7 +28,6 @@ export interface PendingPaymentItemDto {
     name: string;
     email: string;
     phone: string;
-    ci: string;
   } | null;
   court: {
     id: number;
@@ -78,7 +76,6 @@ export class GetPendingPaymentsUseCase {
         paymentId: payment.id,
         reservationId: reservation.id,
         clientName: client?.name || 'Cliente',
-        clientCi: client?.ci || '',
         courtName: court?.name || 'Cancha Deportiva',
         complexName: complex?.name || 'Complejo Deportivo',
         amount: payment.amount,
@@ -99,7 +96,6 @@ export class GetPendingPaymentsUseCase {
               name: client.name,
               email: client.email,
               phone: client.phone,
-              ci: client.ci,
             }
           : null,
         court: court

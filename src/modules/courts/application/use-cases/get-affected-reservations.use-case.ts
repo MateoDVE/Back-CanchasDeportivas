@@ -18,7 +18,6 @@ export interface AffectedReservationDto {
     name: string;
     email: string;
     phone: string;
-    ci: string;
   } | null;
 }
 
@@ -84,7 +83,6 @@ export class GetAffectedReservationsUseCase {
               name: client.name,
               email: client.email,
               phone: client.phone,
-              ci: client.ci,
             }
           : null,
       });

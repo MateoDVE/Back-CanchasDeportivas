@@ -1,5 +1,7 @@
 import {
   Controller,
+  Get,
+  Delete,
   Post,
   Put,
   Patch,
@@ -22,17 +24,33 @@ import { UploadComplexQrDto } from '../dtos/upload-qr.dto';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
+import { GetActiveComplexesUseCase } from '../../application/use-cases/get-active-complexes.use-case';
+import { DeactivateComplexUseCase } from '../../application/use-cases/deactivate-complex.use-case';
 
 @Controller('api/v1/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminComplexesController {
   constructor(
+    private readonly listComplexes: GetActiveComplexesUseCase,
+    private readonly deactivateComplex: DeactivateComplexUseCase,
     private readonly createComplexUseCase: CreateComplexUseCase,
     private readonly updateComplexUseCase: UpdateComplexUseCase,
     private readonly toggleComplexStatusUseCase: ToggleComplexStatusUseCase,
     private readonly updateBusinessInfoUseCase: UpdateBusinessInfoUseCase,
     private readonly uploadComplexQrUseCase: UploadComplexQrUseCase,
   ) {}
+
+  @Get('complexes')
+  @Roles('ADMIN')
+  list(): Promise<ComplexOutputDto[]> { return this.listComplexes.execute(false); }
+
+  // Baja lógica: las canchas y reservas históricas se conservan.
+  @Delete('complexes/:id')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.deactivateComplex.execute(id);
+  }
 
   /**
    * @reference HU-ADM-03 Crear complejo deportivo

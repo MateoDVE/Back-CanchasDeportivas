@@ -12,8 +12,8 @@ export class GetActiveComplexesUseCase {
     private readonly complexRepository: IComplexRepository,
   ) {}
 
-  async execute(): Promise<ComplexOutputDto[]> {
-    const complexes = await this.complexRepository.findAll(true);
+  async execute(onlyActive = true): Promise<ComplexOutputDto[]> {
+    const complexes = await this.complexRepository.findAll(onlyActive);
     return complexes.map((c) => ({
       id: c.id,
       name: c.name,

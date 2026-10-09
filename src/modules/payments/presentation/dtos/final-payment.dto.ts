@@ -1,10 +1,12 @@
+import { Max } from 'class-validator';
 import { IsIn, IsNotEmpty, IsNumber, IsPositive } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PaymentMethod } from '../../domain/entities/payment.entity';
 
 export class FinalPaymentDto {
-  @IsNumber({}, { message: 'El monto debe ser un número válido' })
+  @IsNumber({ maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false }, { message: 'El monto debe ser un número válido' })
   @IsPositive({ message: 'El monto debe ser positivo' })
+  @Max(99999999.99)
   amount: number;
 
   @Transform(({ value }) => {

@@ -1,3 +1,4 @@
+import { MaxLength } from 'class-validator';
 import { IsDateString, IsNotEmpty, IsString } from 'class-validator';
 
 export class ScheduleMaintenanceDto {
@@ -11,5 +12,6 @@ export class ScheduleMaintenanceDto {
 
   @IsString()
   @IsNotEmpty({ message: 'El motivo es obligatorio' })
+  @MaxLength(500)
   reason: string;
 }
