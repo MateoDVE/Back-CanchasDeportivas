@@ -13,7 +13,7 @@ describe('Temporary court blocks', () => {
     const incident = new CourtIncident(1, 8, new Date('2026-09-08T14:00:00-04:00'), new Date('2026-09-08T15:00:00-04:00'), 'Mantenimiento');
     const useCase = new GetCourtAvailabilityUseCase({ findByCourt: async () => [incident] } as any, reservations, courts, schedules);
     const result = await useCase.execute(8, '2026-09-08');
-    expect(result.slots.filter(slot => !slot.isAvailable).map(slot => slot.startTime)).toEqual(['14:00']);
+    expect(result.slots.filter(slot => !slot.isAvailable).map(slot => slot.startTime)).toEqual(['14:00', '14:30']);
     expect(result.slots.find(slot => slot.startTime === '15:00')?.isAvailable).toBe(true);
     expect(result.slots.find(slot => slot.startTime === '20:00')?.isAvailable).toBe(true);
     expect(result.isOpen).toBe(true);

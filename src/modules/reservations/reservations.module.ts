@@ -1,3 +1,6 @@
+import { AuthModule } from '../auth/auth.module';
+import { AuthorizeReservationAccessUseCase } from './application/use-cases/authorize-reservation-access.use-case';
+import { ReservationRouteTokenService } from './application/use-cases/reservation-route-token.service';
 import { Module, forwardRef } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { RESERVATION_REPOSITORY } from './domain/repositories/reservation.repository.interface';
@@ -43,6 +46,7 @@ import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
+    AuthModule,
     forwardRef(() => CourtsModule),
     ComplexesModule,
     forwardRef(() => SchedulesModule),
@@ -55,6 +59,7 @@ import { PaymentsModule } from '../payments/payments.module';
     AdminReservationsController,
   ],
   providers: [
+    AuthorizeReservationAccessUseCase, ReservationRouteTokenService,
     InMemoryReservationRepository,
     {
       provide: RESERVATION_REPOSITORY,
@@ -95,6 +100,7 @@ import { PaymentsModule } from '../payments/payments.module';
     GetMasterCalendarGridUseCase,
   ],
   exports: [
+    AuthorizeReservationAccessUseCase,
     RESERVATION_REPOSITORY,
     GetCourtAvailabilityUseCase,
     CreateTemporalReservationUseCase,

@@ -20,7 +20,6 @@ import { Reservation } from '../../domain/entities/reservation.entity';
 export interface QuickSearchResultDto {
   id: string;
   clientName: string;
-  clientCi?: string;
   clientPhone?: string;
   courtId: number;
   courtName: string;
@@ -35,7 +34,6 @@ export interface QuickSearchResultDto {
   client: {
     id: string;
     fullName: string;
-    ci: string;
     phone: string;
     email: string;
   } | null;
@@ -77,8 +75,8 @@ export class QuickSearchReservationUseCase {
 
     const matchingUsers = allUsers.filter(
       (u) =>
-        u.ci.toLowerCase().includes(q) ||
         u.name.toLowerCase().includes(q) ||
+        u.phone.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q),
     );
     const matchingUserIds = new Set(matchingUsers.map((u) => u.id));
@@ -105,7 +103,6 @@ export class QuickSearchReservationUseCase {
       return {
         id: res.id,
         clientName: u ? u.name : 'Cliente',
-        clientCi: u?.ci,
         clientPhone: u?.phone,
         courtId: res.courtId,
         courtName: court ? court.name : `Cancha ${res.courtId}`,
@@ -121,7 +118,6 @@ export class QuickSearchReservationUseCase {
           ? {
               id: u.id,
               fullName: u.name,
-              ci: u.ci,
               phone: u.phone,
               email: u.email,
             }

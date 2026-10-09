@@ -41,7 +41,6 @@ export interface ReservationDetailOutputDto {
     name: string;
     email: string;
     phone: string;
-    ci: string;
   } | null;
   court: {
     id: number;
@@ -137,7 +136,6 @@ export class GetReservationDetailUseCase {
             name: client.name,
             email: client.email,
             phone: client.phone,
-            ci: client.ci,
           }
         : null,
       court: court

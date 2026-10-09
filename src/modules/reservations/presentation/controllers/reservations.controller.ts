@@ -1,3 +1,6 @@
+import { ResolveRouteDto } from '../dtos/resolve-route.dto';
+import { AuthorizeReservationAccessUseCase } from '../../application/use-cases/authorize-reservation-access.use-case';
+import { ReservationRouteTokenService } from '../../application/use-cases/reservation-route-token.service';
 import {
   Controller,
   Get,
@@ -32,6 +35,8 @@ import { GetReservationBalanceUseCase } from '../../application/use-cases/get-re
 @Controller('api/v1')
 export class ReservationsController {
   constructor(
+    private readonly access: AuthorizeReservationAccessUseCase,
+    private readonly routeTokens: ReservationRouteTokenService,
     private readonly getCourtAvailabilityUseCase: GetCourtAvailabilityUseCase,
     private readonly createTemporalReservationUseCase: CreateTemporalReservationUseCase,
     private readonly getReservationSummaryUseCase: GetReservationSummaryUseCase,
@@ -101,8 +106,10 @@ export class ReservationsController {
   @Get('reservations/:id/summary')
   @UseGuards(JwtAuthGuard)
   async getSummary(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ): Promise<ReservationSummaryOutputDto> {
+    await this.access.execute(id, user.id);
     return this.getReservationSummaryUseCase.execute(id);
   }
 
@@ -112,17 +119,36 @@ export class ReservationsController {
   @Get('reservations/:id/status')
   @UseGuards(JwtAuthGuard)
   async getStatus(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ): Promise<ReservationStatusOutputDto> {
+    await this.access.execute(id, user.id);
     return this.getReservationStatusUseCase.execute(id);
   }
 
   /**
    * @reference HU-CLI-20 Consultar detalle de reserva
    */
+  @Post('reservations/resolve-route')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async resolveRoute(@Body() dto: ResolveRouteDto, @CurrentUser() user: AuthenticatedUser) {
+    const id = this.routeTokens.resolve(dto.token, user.id);
+    await this.access.execute(id, user.id);
+    return this.getReservationSummaryUseCase.execute(id);
+  }
+
+  @Get('reservations/:id/route-token')
+  @UseGuards(JwtAuthGuard)
+  async routeToken(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.access.execute(id, user.id);
+    return { token: this.routeTokens.create(id, user.id) };
+  }
+
   @Get('reservations/:id')
   @UseGuards(JwtAuthGuard)
-  async getDetail(@Param('id') id: string) {
+  async getDetail(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.access.execute(id, user.id);
     return this.getReservationDetailUseCase.execute(id);
   }
 
@@ -131,7 +157,8 @@ export class ReservationsController {
    */
   @Get('reservations/:id/balance')
   @UseGuards(JwtAuthGuard)
-  async getBalance(@Param('id') id: string) {
+  async getBalance(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.access.execute(id, user.id);
     return this.getReservationBalanceUseCase.execute(id);
   }
 
@@ -140,7 +167,8 @@ export class ReservationsController {
    */
   @Get('reservations/:id/reschedule-info')
   @UseGuards(JwtAuthGuard)
-  async getRescheduleInfo(@Param('id') id: string) {
+  async getRescheduleInfo(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.access.execute(id, user.id);
     return this.getRescheduleInfoUseCase.execute(id);
   }
 

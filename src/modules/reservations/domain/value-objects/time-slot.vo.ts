@@ -4,7 +4,7 @@ import {
 } from '../../../../common/domain/exceptions/domain.exception';
 
 /**
- * @reference RN-01 Duración mínima y fracciones prohibidas
+ * @reference RN-01 Duración mínima de 30 minutos
  * @reference RN-02 Flexibilidad de hora de inicio (:00 o :30)
  * @reference HU-CLI-10 Seleccionar horario
  */
@@ -30,10 +30,10 @@ export class TimeSlot {
     const durationMinutes = endMinutes - startMinutes;
     const hours = durationMinutes / 60;
 
-    // Regla RN-01: Duración mínima 1 hora y solo múltiplos enteros de hora (no fracciones)
-    if (hours < 1 || !Number.isInteger(hours)) {
+    // Duraciones en bloques consecutivos de media hora.
+    if (durationMinutes < 30 || durationMinutes % 30 !== 0) {
       throw new InvalidReservationDurationException(
-        `Duración inválida (${hours} horas). La duración mínima es de 1 hora y solo se admiten múltiplos enteros (ej. 1h, 2h, 3h). No se permiten fracciones.`,
+        `Duración inválida (${hours} horas). La duración mínima es de 30 minutos y debe ser múltiplo de media hora.`,
       );
     }
 

@@ -57,7 +57,7 @@ export class CreateManualReservationUseCase {
     }
     if (!await this.userRepository.findById(WALK_IN_CLIENT_ID)) {
       const guest = new User(WALK_IN_CLIENT_ID, 'Cliente presencial',
-        'cliente-presencial@reservas.invalid', '', 'PRESENCIAL',
+        'cliente-presencial@reservas.invalid', '', '',
         crypto.randomBytes(48).toString('hex'), 'CLIENTE', 'INACTIVE');
       try {
         await this.userRepository.save(guest);

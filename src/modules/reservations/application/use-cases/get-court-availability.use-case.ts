@@ -122,19 +122,19 @@ export class GetCourtAvailabilityUseCase {
       return true;
     });
 
-    // Generar franjas horarias de 1 hora entre openTime y closeTime
+    // Generar franjas horarias de media hora entre openTime y closeTime
     const slots: SlotAvailabilityDto[] = [];
     const openMinutes = this.timeToMinutes(schedule.openTime);
     const closeMinutes = this.timeToMinutes(schedule.closeTime);
 
-    // Iteramos cada 60 minutos
+    // Iteramos cada 30 minutos
     for (
       let current = openMinutes;
-      current + 60 <= closeMinutes;
-      current += 60
+      current + 30 <= closeMinutes;
+      current += 30
     ) {
       const slotStart = this.minutesToTime(current);
-      const slotEnd = this.minutesToTime(current + 60);
+      const slotEnd = this.minutesToTime(current + 30);
       const timeSlot = new TimeSlot(slotStart, slotEnd);
 
       if (overlapsIncident(incidents, date, slotStart, slotEnd)) {

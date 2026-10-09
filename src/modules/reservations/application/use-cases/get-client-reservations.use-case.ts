@@ -41,7 +41,7 @@ export class GetClientReservationsUseCase {
     const courts = await this.courtRepository.findAll(false);
     const courtMap = new Map(courts.map((c) => [c.id, c.name]));
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/La_Paz' }).format(new Date());
 
     const upcoming: ClientReservationItemDto[] = [];
     const history: ClientReservationItemDto[] = [];
@@ -57,7 +57,7 @@ export class GetClientReservationsUseCase {
         totalPrice: r.totalPrice,
         advanceRequired: r.advanceRequired,
         pendingBalance: r.pendingBalance,
-        status: r.status,
+        status: r.isExpired() ? 'EXPIRED' : r.status,
         expiresAt: r.expiresAt,
         secondsRemaining: r.secondsRemaining(),
         createdAt: r.createdAt,
@@ -65,7 +65,7 @@ export class GetClientReservationsUseCase {
 
       const isUpcoming =
         r.reservationDate >= todayStr &&
-        ['TEMPORAL', 'PENDING_VALIDATION', 'CONFIRMED'].includes(r.status);
+        ['TEMPORAL', 'PENDING_VALIDATION', 'CONFIRMED'].includes(item.status);
 
       if (isUpcoming) {
         upcoming.push(item);
@@ -74,6 +74,10 @@ export class GetClientReservationsUseCase {
       }
     }
 
+    const bySchedule = (a: ClientReservationItemDto, b: ClientReservationItemDto) =>
+      (a.reservationDate + a.startTime).localeCompare(b.reservationDate + b.startTime) || a.id.localeCompare(b.id);
+    upcoming.sort(bySchedule);
+    history.sort((a, b) => bySchedule(b, a));
     return { upcoming, history };
   }
 }

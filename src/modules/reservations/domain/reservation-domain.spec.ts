@@ -22,16 +22,12 @@ describe('Reservation Domain & Business Rules (RN-01 to RN-05)', () => {
       expect(slot.durationHours).toBe(1);
     });
 
-    it('debe rechazar duraciones menores a 1 hora (ej. 30 minutos - RN-01)', () => {
-      expect(() => new TimeSlot('08:00', '08:30')).toThrow(
-        InvalidReservationDurationException,
-      );
+    it('debe permitir bloques de 30 minutos', () => {
+      expect(new TimeSlot('08:00', '08:30').durationHours).toBe(0.5);
     });
 
-    it('debe rechazar duraciones fraccionadas (ej. 1 hora y media - RN-01)', () => {
-      expect(() => new TimeSlot('08:00', '09:30')).toThrow(
-        InvalidReservationDurationException,
-      );
+    it('debe permitir bloques de 90 minutos', () => {
+      expect(new TimeSlot('08:00', '09:30').durationHours).toBe(1.5);
     });
 
     it('debe rechazar inicios en minutos no permitidos (ej. :15 - RN-02)', () => {
@@ -58,8 +54,8 @@ describe('Reservation Domain & Business Rules (RN-01 to RN-05)', () => {
 
     expect(reservation.advanceRequired).toBe(50.0);
 
-    // Mientras es TEMPORAL, el saldo pendiente todavía es 0
-    expect(reservation.pendingBalance).toBe(0);
+    // La cotización del saldo posterior al anticipo no acredita un pago.
+    expect(reservation.pendingBalance).toBe(150.0);
 
     reservation.markAsPendingValidation();
 

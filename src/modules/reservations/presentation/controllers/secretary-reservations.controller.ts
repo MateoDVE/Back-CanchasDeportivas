@@ -65,10 +65,9 @@ export class SecretaryReservationsController {
   async searchClients(@Query('q') query = '') {
     if (query.trim().length < 2) return [];
     const clients = await this.users.searchClients(query.slice(0, 80));
-    return clients.map(({ id, name, ci, phone, email }) => ({
+    return clients.map(({ id, name, phone, email }) => ({
       id,
       name,
-      ci,
       phone,
       email,
     }));

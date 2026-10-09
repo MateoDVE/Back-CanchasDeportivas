@@ -1,3 +1,4 @@
+import { MaxLength } from 'class-validator';
 import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, Matches } from 'class-validator';
 
 export class RescheduleReservationDto {
@@ -26,5 +27,6 @@ export class RescheduleReservationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   reason?: string;
 }
