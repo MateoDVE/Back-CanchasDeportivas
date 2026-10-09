@@ -31,7 +31,7 @@ export class ValidationException extends DomainException {
 }
 
 export class InvalidReservationDurationException extends ValidationException {
-  constructor(message = 'La duración debe ser de al menos 1 hora y en bloques enteros.') {
+  constructor(message = 'La duración debe ser de al menos 30 minutos y en bloques de media hora.') {
     super(message);
   }
 }

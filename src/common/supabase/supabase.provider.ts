@@ -1,6 +1,7 @@
 import { Provider, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { auditedFetch } from './audit-context';
 
 export const SUPABASE_CLIENT = 'SUPABASE_CLIENT';
 
@@ -18,6 +19,7 @@ export const SupabaseProvider: Provider = {
       url = url.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
       logger.log(`Conectando cliente Supabase a ${url}`);
       return createClient(url, key, {
+        global: { fetch: auditedFetch },
         auth: {
           persistSession: false,
           autoRefreshToken: false,
