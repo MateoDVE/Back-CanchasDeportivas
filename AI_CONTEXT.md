@@ -93,10 +93,10 @@ Cualquier agente de IA que genere lógica de negocio debe respetar estas reglas:
    - Durante esos 5 minutos, nadie más puede reservar ese bloque en esa cancha.
    - Si no se registra el comprobante de pago antes de `expires_at`, la reserva expira y el horario vuelve a estar disponible.
 2. **Duración de Reservas**:
-   - Duración mínima: **1 hora exacta**.
-   - No se permiten fracciones de hora (prohibidos 30 minutos, 90 minutos, etc.).
-   - Se permiten bloques de horas completas consecutivas (ej. 1h, 2h, 3h).
-   - El inicio puede ser en punto o a media hora (ej. `08:30 -> 09:30` ✅, `08:30 -> 10:30` ✅, pero `08:00 -> 09:30` ❌).
+   - Duración mínima: **30 minutos** (actualización del 09/10/2026).
+   - Se permiten duraciones múltiplos de 30 minutos: 30, 60, 90 minutos, etc.
+   - Los bloques seleccionados deben ser consecutivos y el precio es proporcional a la duración.
+   - El inicio puede ser en punto o a media hora (ej. `08:00 -> 08:30` ✅, `08:30 -> 10:00` ✅, pero `08:15 -> 09:15` ❌).
 3. **Monto de Anticipo y Saldo**:
    - `advance_required = total_price * 0.25` (25% exacto).
    - Saldo pendiente al llegar al complejo = `total_price - advance_required` (75% restante).
@@ -135,3 +135,7 @@ Para consultar especificaciones técnicas exhaustivas, consulta los siguientes a
 4. ✅ **SIEMPRE** usa DTOs con decoradores de `class-validator` para entradas de la API.
 5. ✅ **SIEMPRE** documenta los métodos de casos de uso indicando a qué Historia de Usuario corresponden (ej. `@reference HU-CLI-11`).
 6. ✅ **SIEMPRE** maneja montos monetarios con dos decimales (`NUMERIC(10,2)`).
+
+## Correcciones de acceso y reservas — 09/10/2026
+
+Registro con firstName y lastName, bcrypt y estado PENDING_VERIFICATION. Se requiere correo firmado y vigente para activar la cuenta. Consultar `docs/correcciones-acceso-reservas.md` para configurar correo y aplicar la migración. Los enlaces de reserva contienen tokens firmados vinculados al usuario; la API valida propiedad y permisos. El contador no cancela reservas que ya enviaron comprobante aceptado.
